@@ -9,6 +9,8 @@ def pa_read_csv(csv_path, test_col_types):
     return pa_csv_table
 
 
-def pa_read_csv_to_pandas(csv_path, test_col_types, pd_integer: bool = True):
+def pa_read_csv_to_pandas(
+    csv_path, test_col_types, pd_integer: bool = True, pd_string: bool = True
+):
     arrow_table = pa_read_csv(csv_path, test_col_types)
-    return arrow_to_pandas(arrow_table, pd_integer=pd_integer)
+    return arrow_to_pandas(arrow_table, pd_integer=pd_integer, pd_string=pd_string)

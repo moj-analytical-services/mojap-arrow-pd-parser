@@ -8,6 +8,9 @@ def generate_type_mapper(pd_boolean, pd_integer, pd_string):
     if pd_boolean:
         bool_map = {pa.bool_(): pd.BooleanDtype()}
         tm = {**tm, **bool_map}
+    if pd_string:
+        string_map = {pa.string(): pd.StringDtype()}
+        tm = {**tm, **string_map}
 
     if pd_integer:
         int_map = {
@@ -55,13 +58,15 @@ def arrow_to_pandas(
     Args:
         arrow_table (pa.Table): An arrow table
 
-        new_integer (bool, optional): converts bools to the new pandas BooleanDtype.
+        pd_boolean (bool, optional): converts bools to the new pandas BooleanDtype.
         Otherwise will convert to bool (if not nullable) and object of (True, False, None) if nulls exist. Defaults to True.
-
-        new_string (bool, optional): [description]. Defaults to True.
+        
+        pd_integer (bool, optional): [description]. Defaults to True.
+        
+        pd_string (bool, optional): [description]. Defaults to True.
 
     Returns:
         [type]: [description]
     """
     tm = generate_type_mapper(pd_boolean, pd_integer, pd_string)
-    return arrow_table.to_pandas(types_mapper=tm, datetime_as_object=True)
+    return arrow_table.to_pandas(types_mapper=tm, date_as_object=True)
