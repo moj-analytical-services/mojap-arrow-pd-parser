@@ -10,8 +10,8 @@ def pa_read_csv(csv_path, test_col_types):
     return pa_csv_table
 
 
-def pa_to_pd(arrow_table, new_int_type: bool = True):
-    if new_int_type:
+def pa_to_pd(arrow_table, pd_integer: bool = True):
+    if pd_integer:
         int_mapper = {
             pa.int8(): pd.Int64Dtype(),
             pa.int16(): pd.Int64Dtype(),
@@ -42,6 +42,6 @@ def pa_to_pd(arrow_table, new_int_type: bool = True):
         )
 
 
-def pa_read_csv_to_pandas(csv_path, test_col_types, new_int_type: bool = True):
+def pa_read_csv_to_pandas(csv_path, test_col_types, pd_integer: bool = True):
     arrow_table = pa_read_csv(csv_path, test_col_types)
-    return pa_to_pd(arrow_table, new_int_type=new_int_type)
+    return pa_to_pd(arrow_table, pd_integer=pd_integer)
