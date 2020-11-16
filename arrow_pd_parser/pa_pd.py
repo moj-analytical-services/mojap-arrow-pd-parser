@@ -1,3 +1,4 @@
+import numpy as np
 import pyarrow as pa
 import pandas as pd
 
@@ -10,6 +11,33 @@ def generate_type_mapper(pd_boolean, pd_integer, pd_string):
     if pd_string:
         string_map = {pa.string(): pd.StringDtype()}
         tm = {**tm, **string_map}
+
+    if pd_integer:
+        int_map = {
+            pa.int8(): pd.Int64Dtype(),
+            pa.int16(): pd.Int64Dtype(),
+            pa.int32(): pd.Int64Dtype(),
+            pa.int64(): pd.Int64Dtype(),
+            pa.uint8(): pd.Int64Dtype(),
+            pa.uint16(): pd.Int64Dtype(),
+            pa.uint32(): pd.Int64Dtype(),
+            pa.uint64(): pd.Int64Dtype(),
+        }
+        tm = {**tm, **int_map}
+    else:
+        # No brackets for either keys or values in this dictionary
+        # This lets types_mapper understand the numpy data type
+        int_map = {
+            pa.int8: np.float64,
+            pa.int16: np.float64,
+            pa.int32: np.float64,
+            pa.int64: np.float64,
+            pa.uint8: np.float64,
+            pa.uint16: np.float64,
+            pa.uint32: np.float64,
+            pa.uint64: np.float64,
+        }
+        tm = {**tm, **int_map}
 
     if tm:
         return tm.get
@@ -32,7 +60,9 @@ def arrow_to_pandas(
 
         pd_boolean (bool, optional): converts bools to the new pandas BooleanDtype.
         Otherwise will convert to bool (if not nullable) and object of (True, False, None) if nulls exist. Defaults to True.
-
+        
+        pd_integer (bool, optional): [description]. Defaults to True.
+        
         pd_string (bool, optional): [description]. Defaults to True.
 
     Returns:
