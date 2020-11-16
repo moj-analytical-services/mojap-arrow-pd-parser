@@ -1,7 +1,7 @@
 import pytest
 import pyarrow as pa
 
-from arrow_pd_parser.parse_csv import pa_read_csv_to_pandas
+from arrow_pd_parser.parse import pa_read_csv_to_pandas
 
 
 @pytest.mark.parametrize(
