@@ -1,11 +1,11 @@
-,my_string
-0,bhaskjfhsaf
-1,bsfjasf 
-2,csjasof fweh lkia hfeaofh 
-3,ashsfa kflaf af
-4,cffasjf la
-5,aflhnas flk; h 
-6,
-7, hjsaldfh 
-8,
-9,This will do! 
+i,my_string
+one string no spaces,bhaskjfhsaf
+an emoji,💩
+escaped comma in string with double quotation,"dsfasd,dsffadsf"
+string with spaces,csjasof fweh lkia hfeaofh
+string with non text character,aflhnas flk; h
+fake null,NULL
+string starting with a space, hjsaldfh
+another fake null,null
+a fake none type,None
+Empty string,
