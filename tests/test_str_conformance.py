@@ -1,7 +1,5 @@
 import pytest
 import pyarrow as pa
-from pyarrow import csv
-import pandas as pd
 
 from arrow_pd_parser.parse import pa_read_csv_to_pandas
 

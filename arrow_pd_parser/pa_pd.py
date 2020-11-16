@@ -83,6 +83,7 @@ def arrow_to_pandas(
         pd_timestamp_type (str, optional): Can be either datetime_object, pd_timestamp or pd_period. Defaults to datetime_object.
     Returns:
         Pandas dataframe with mapped types
+    """
 
     tm = generate_type_mapper(
         pd_boolean, pd_integer, pd_string, pd_date_type, pd_timestamp_type
