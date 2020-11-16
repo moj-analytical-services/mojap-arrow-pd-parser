@@ -62,4 +62,4 @@ def arrow_to_pandas(
         [type]: [description]
     """
     tm = generate_type_mapper(pd_boolean, pd_integer, pd_string)
-    return arrow_table.to_pandas(types_mapper=tm)
+    return arrow_table.to_pandas(types_mapper=tm, datetime_as_object=True)
