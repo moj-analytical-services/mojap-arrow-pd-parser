@@ -11,6 +11,6 @@ def pa_read_csv(csv_path, test_col_types):
     return pa_csv_table
 
 
-def pa_read_csv_to_pandas(csv_path, test_col_types, new_int_type: bool = True):
+def pa_read_csv_to_pandas(csv_path, test_col_types, pd_integer: bool = True):
     arrow_table = pa_read_csv(csv_path, test_col_types)
-    return arrow_to_pandas(arrow_table, new_int_type=new_int_type)
+    return arrow_to_pandas(arrow_table, pd_integer=pd_integer)
