@@ -22,6 +22,8 @@ def generate_type_mapper(pd_boolean, pd_integer, pd_string):
         }
         tm = {**tm, **int_map}
     else:
+        # No brackets for either keys or values in this dictionary
+        # This lets types_mapper understand the numpy data type
         int_map = {
             pa.int8: np.float64,
             pa.int16: np.float64,
