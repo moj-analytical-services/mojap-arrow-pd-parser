@@ -2,12 +2,26 @@ import pyarrow as pa
 import pandas as pd
 
 
-def generate_type_mapper(pd_boolean, pd_integer, pd_string):
+def generate_type_mapper(
+    pd_boolean, pd_integer, pd_string, pd_date_type, pd_timestamp_type
+):
     tm = {}
     if pd_boolean:
-        bool_map = {pa.bool_(): pd.BooleanDtype()}
+        bool_map = {pa.bool_(): "boolean"}
         tm = {**tm, **bool_map}
 
+    if pd_date_type == "pd_period":
+        date_map = {pa.date64: pd.PeriodDtype("ms")}
+        tm = {**tm, **date_map}
+
+    if pd_timestamp_type == "pd_period":
+        datetime_map = {
+            pa.timestamp("s"): pd.PeriodDtype("s"),
+            pa.timestamp("ms"): pd.PeriodDtype("ms"),
+            pa.timestamp("us"): pd.PeriodDtype("us"),
+            pa.timestamp("ns"): pd.PeriodDtype("ns"),
+        }
+        tm = {**tm, **datetime_map}
     if tm:
         return tm.get
     else:
@@ -19,8 +33,8 @@ def arrow_to_pandas(
     pd_boolean=True,
     pd_integer=True,
     pd_string=True,
-    date_type: str = None,
-    datetime_type: str = None,
+    pd_date_type: str = "datetime_object",
+    pd_timestamp_type: str = "datetime_object",
 ):
     """Converts arrow table to stricter pandas datatypes based on options.
 
@@ -32,8 +46,22 @@ def arrow_to_pandas(
         
         new_string (bool, optional): [description]. Defaults to True.
 
+        pd_date_type (str, optional): Can be either datetime_object, pd_timestamp or pd_period. Defaults to datetime_object.
+        pd_timestamp_type (str, optional): Can be either datetime_object, pd_timestamp or pd_period. Defaults to datetime_object.
     Returns:
-        [type]: [description]
+        Pandas dataframe with mapped types
     """
-    tm = generate_type_mapper(pd_boolean, pd_integer, pd_string)
-    return arrow_table.to_pandas(types_mapper=tm, datetime_as_object=True)
+
+    tm = generate_type_mapper(
+        pd_boolean, pd_integer, pd_string, pd_date_type, pd_timestamp_type
+    )
+
+    timestamp_as_object = pd_timestamp_type == "datetime_object"
+    date_as_object = pd_date_type == "datetime_object"
+
+    df = arrow_table.to_pandas(
+        types_mapper=tm,
+        date_as_object=date_as_object,
+        timestamp_as_object=timestamp_as_object,
+    )
+    return df
