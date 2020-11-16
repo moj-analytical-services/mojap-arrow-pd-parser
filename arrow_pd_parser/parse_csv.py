@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 from pyarrow import csv
@@ -9,25 +10,37 @@ def pa_read_csv(csv_path, test_col_types):
     return pa_csv_table
 
 
-def int_mapper(data_type):
-    if data_type in [
-        pa.int8(),
-        pa.int16(),
-        pa.int32(),
-        pa.int64(),
-        pa.uint8(),
-        pa.uint16(),
-        pa.uint32(),
-        pa.uint64(),
-    ]:
+int_types = [
+    pa.int8(),
+    pa.int16(),
+    pa.int32(),
+    pa.int64(),
+    pa.uint8(),
+    pa.uint16(),
+    pa.uint32(),
+    pa.uint64(),
+]
+
+
+def int64_mapper(data_type):
+    if data_type in int_types:
         return pd.Int64Dtype()
+
+
+#def float64_mapper(data_type):
+#    if data_type in int_types:
+#        return np.float64()
 
 
 def pa_to_pd(arrow_table, new_int_type: bool = True):
     if new_int_type:
-        return arrow_table.to_pandas(timestamp_as_object=True, types_mapper=int_mapper)
+        return arrow_table.to_pandas(
+            timestamp_as_object=True, types_mapper=int64_mapper
+        )
     else:
-        return arrow_table.to_pandas(timestamp_as_object=True)
+        return arrow_table.to_pandas(
+            timestamp_as_object=True
+        )
 
 
 def pa_read_csv_to_pandas(csv_path, test_col_types, new_int_type: bool = True):
