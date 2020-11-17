@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "arrow-pd-parser"
+name = "arrow_pd_parser"
 version = "0.0.1"
 description = "MoJ arrow-pd-parser"
 authors = ["Karik Isichei <karik.isichei@digital.justice.gov.uk>",
