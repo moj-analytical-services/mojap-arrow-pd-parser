@@ -2,6 +2,8 @@ import pytest
 import pyarrow as pa
 
 from arrow_pd_parser.parse import pa_read_csv_to_pandas
+from pandas.testing import assert_series_equal
+from pandas import Series
 
 
 @pytest.mark.parametrize(
@@ -36,8 +38,8 @@ def test_csv_options(in_type, pd_old_type, pd_new_type):
         "include_columns": ["i", "my_string", "nonexistent_column"],
         "include_missing_columns": True,
         "null_values": ["NULL_STRING"],
+        "strings_can_be_null": True,
     }
-
     df = pa_read_csv_to_pandas(
         "tests/data/csv_options_test.csv",
         test_col_types,
@@ -46,5 +48,14 @@ def test_csv_options(in_type, pd_old_type, pd_new_type):
         convert_options=convert_options,
         read_options=read_options,
     )
-    print(df.columns.tolist())
+
+    expected = [
+        "dsfasd;dsffadsf",
+        "dsfasd;dsffadsf",
+        None,
+        "this text\nhas a line break",
+        "this text, like so, has commas"
+    ]
     assert df.columns.tolist() == ["i", "my_string", "nonexistent_column"]
+    assert df["nonexistent_column"].isnull().all()
+    assert_series_equal(df["my_string"], Series(expected, name="my_string"))
