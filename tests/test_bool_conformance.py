@@ -5,7 +5,7 @@ from arrow_pd_parser.parse import pa_read_csv_to_pandas, pa_read_json_to_pandas
 
 
 args = (
-    "col_name,pd_old_type,pd_new_type",
+    ("col_name", "pd_old_type", "pd_new_type"),
     [("my_bool", "bool", "boolean"), ("my_nullable_bool", "object", "boolean")],
 )
 
