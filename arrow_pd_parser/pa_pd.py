@@ -71,20 +71,15 @@ def arrow_to_pandas(
     Converts arrow table to stricter pandas datatypes based on options.
     Args:
         arrow_table (pa.Table): An arrow table
-
         pd_boolean (bool, optional): converts bools to the new pandas BooleanDtype.
-        Otherwise will convert to bool (if not nullable) 
-         and object of (True, False, None) if nulls exist. Defaults to True.
-
+        Otherwise will convert to bool (if not nullable)
+        and object of (True, False, None) if nulls exist. Defaults to True.
         pd_integer (bool, optional): [description]. Defaults to True.
-
         pd_string (bool, optional): [description]. Defaults to True.
-
         pd_date_type (str, optional): Can be either datetime_object,
-         pd_timestamp or pd_period. Defaults to datetime_object.
+        pd_timestamp or pd_period. Defaults to datetime_object.
         pd_timestamp_type (str, optional): Can be either datetime_object,
-         pd_timestamp or pd_period. Defaults to datetime_object.
-         
+        pd_timestamp or pd_period. Defaults to datetime_object.
     Returns:
         Pandas dataframe with mapped types
     """
