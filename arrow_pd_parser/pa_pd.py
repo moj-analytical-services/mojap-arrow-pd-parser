@@ -1,10 +1,14 @@
 import numpy as np
 import pyarrow as pa
 import pandas as pd
-
+import warnings
 
 def generate_type_mapper(
-    pd_boolean, pd_integer, pd_string, pd_date_type, pd_timestamp_type
+    pd_boolean=None,
+    pd_integer=None,
+    pd_string=None,
+    pd_date_type=None,
+    pd_timestamp_type=None,
 ):
     tm = {}
     if pd_boolean:
@@ -42,7 +46,7 @@ def generate_type_mapper(
         tm = {**tm, **int_map}
 
     if pd_date_type == "pd_period":
-        date_map = {pa.date64: pd.PeriodDtype("ms")}
+        date_map = {pa.date64(): pd.PeriodDtype("ms")}
         tm = {**tm, **date_map}
 
     if pd_timestamp_type == "pd_period":
@@ -84,6 +88,22 @@ def arrow_to_pandas(
     Returns:
         Pandas dataframe with mapped types
     """
+
+    cant_convert_cols = []
+    if pd_date_type == "pd_period":
+        for c in arrow_table.schema:
+            if str(c.type).startswith("date32"):
+                cant_convert_cols.append(c.name)
+
+        if cant_convert_cols:
+            warn_msg = (
+                "date32 pyarrow types (seen in columns: "
+                f"{cant_convert_cols}) cannot be converted to ",
+                "pd.PeriodDtype setting all dates to default type: ",
+                "datetime_object"
+            )
+            warnings.warn(warn_msg)
+            pd_date_type = "datetime_object"
 
     tm = generate_type_mapper(
         pd_boolean, pd_integer, pd_string, pd_date_type, pd_timestamp_type
