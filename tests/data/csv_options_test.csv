@@ -1,0 +1,3 @@
+i,my_string
+escaped comma in string with single quotes,'dsfasd,dsffadsf'
+escaped comma in string with no quotes,dsfasd\,dsffadsf
