@@ -1,3 +1,7 @@
-i,my_string
-escaped comma in string with single quotes,'dsfasd,dsffadsf'
-escaped comma in string with no quotes,dsfasd\,dsffadsf
+a line of random text before the actual csv content
+i;my_string;left_out_col
+escaped delimiter in string with single quotes;'dsfasd;dsffadsf';not included
+escaped delimiter in string with no quotes;dsfasd\;dsffadsf;not included
+specific null value;NULL_STRING;not included
+string with newline;lthis text\\nhas two lines;not included
+comma no longer delimits;this text, like so, has commas;not included
