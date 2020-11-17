@@ -98,8 +98,8 @@ def arrow_to_pandas(
         if cant_convert_cols:
             warn_msg = (
                 "date32 pyarrow types (seen in columns: "
-                f"{cant_convert_cols}) cannot be converted to ",
-                "pd.PeriodDtype setting all dates to default type: ",
+                f"{cant_convert_cols}) cannot be converted to "
+                "pd.PeriodDtype setting all dates to default type: "
                 "datetime_object"
             )
             warnings.warn(warn_msg)
