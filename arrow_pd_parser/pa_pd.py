@@ -3,6 +3,7 @@ import pyarrow as pa
 import pandas as pd
 import warnings
 
+
 def generate_type_mapper(
     pd_boolean=None,
     pd_integer=None,
@@ -33,7 +34,7 @@ def generate_type_mapper(
     else:
         # No brackets for either keys or values in this dictionary
         # This lets types_mapper understand the numpy data type
-        int_map = {
+        float_map = {
             pa.int8: np.float64,
             pa.int16: np.float64,
             pa.int32: np.float64,
@@ -43,7 +44,7 @@ def generate_type_mapper(
             pa.uint32: np.float64,
             pa.uint64: np.float64,
         }
-        tm = {**tm, **int_map}
+        tm = {**tm, **float_map}
 
     if pd_date_type == "pd_period":
         date_map = {pa.date64(): pd.PeriodDtype("ms")}
