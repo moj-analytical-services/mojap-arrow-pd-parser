@@ -30,4 +30,3 @@ def pa_read_csv_to_pandas(
     )
 
     return df
-  
