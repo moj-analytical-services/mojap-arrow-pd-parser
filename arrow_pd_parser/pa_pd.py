@@ -67,8 +67,8 @@ def arrow_to_pandas(
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
 ):
-    """Converts arrow table to stricter pandas datatypes based on options.
-
+    """
+    Converts arrow table to stricter pandas datatypes based on options.
     Args:
         arrow_table (pa.Table): An arrow table
 
@@ -84,6 +84,7 @@ def arrow_to_pandas(
          pd_timestamp or pd_period. Defaults to datetime_object.
         pd_timestamp_type (str, optional): Can be either datetime_object,
          pd_timestamp or pd_period. Defaults to datetime_object.
+         
     Returns:
         Pandas dataframe with mapped types
     """
