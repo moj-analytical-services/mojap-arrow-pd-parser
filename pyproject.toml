@@ -4,10 +4,11 @@ version = "0.0.1"
 description = "mojap-arrow-pd-parser"
 authors = ["Karik Isichei <karik.isichei@digital.justice.gov.uk>",
            "Alec Johnson <alec.johnson@digital.justice.gov.uk>",
-           "Kimberley Brett <kimberley.brett@digital.justice.gov.uk>,
+           "Kimberley Brett <kimberley.brett@digital.justice.gov.uk>",
            "Thomas Hirsch <thomas.hirsch@digital.justice.gov.uk>",
-           "Jacob Browning <jacob.browning@digital.justice.gov.uk>,
-           "Jacob Hamblin-Pyke <jacob.hamblin-pyke@digital.justice.gov.uk>,
+           "Jacob Browning <jacob.browning@digital.justice.gov.uk>",
+           "Jacob Hamblin-Pyke <jacob.hamblin-pyke@digital.justice.gov.uk>",
+           "Anthony Cody <anthony.cody@digital.justice.gov.uk>",
            "George Kelly <george.kelly@digital.justice.gov.uk>",
            ]
 
