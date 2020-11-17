@@ -73,7 +73,8 @@ def arrow_to_pandas(
         arrow_table (pa.Table): An arrow table
 
         pd_boolean (bool, optional): converts bools to the new pandas BooleanDtype.
-        Otherwise will convert to bool (if not nullable) and object of (True, False, None) if nulls exist. Defaults to True.
+        Otherwise will convert to bool (if not nullable) 
+         and object of (True, False, None) if nulls exist. Defaults to True.
 
         pd_integer (bool, optional): [description]. Defaults to True.
 
