@@ -3,6 +3,7 @@ import pyarrow as pa
 import pandas as pd
 import warnings
 
+
 def generate_type_mapper(
     pd_boolean=None,
     pd_integer=None,
@@ -99,7 +100,7 @@ def arrow_to_pandas(
                 "date32 pyarrow types (seen in columns: "
                 f"{cant_convert_cols}) cannot be converted to ",
                 "pd.PeriodDtype setting all dates to default type: ",
-                "datetime_object"
+                "datetime_object",
             )
             warnings.warn(warn_msg)
             pd_date_type = "datetime_object"
@@ -114,6 +115,6 @@ def arrow_to_pandas(
     df = arrow_table.to_pandas(
         types_mapper=tm,
         date_as_object=date_as_object,
-        timestamp_as_object=timestamp_as_object,
+        timestamp_as_object=timestamp_as_object,  # Karik this fails
     )
     return df
