@@ -1,4 +1,3 @@
-import pytest
 import pyarrow as pa
 from pandas import DataFrame
 from arrow_pd_parser.parse import pa_read_csv_to_pandas, pa_read_json_to_pandas
