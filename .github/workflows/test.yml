@@ -29,4 +29,4 @@ jobs:
 
       - name: Run tests with pytest
         run: |
-          if [ -d tests ]; then pytest tests/ -vv; fi
+          if [ -d tests ]; then poetry run pytest tests/ -vv; fi
