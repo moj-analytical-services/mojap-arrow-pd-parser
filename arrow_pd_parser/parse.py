@@ -43,7 +43,9 @@ def pa_read_csv_to_pandas(
     read_options=None,
 ):
 
-    arrow_table = pa_read_csv(csv_path, test_col_types, convert_options, parse_options, read_options)
+    arrow_table = pa_read_csv(
+        csv_path, test_col_types, convert_options, parse_options, read_options
+    )
     df = arrow_to_pandas(
         arrow_table,
         pd_boolean=pd_boolean,

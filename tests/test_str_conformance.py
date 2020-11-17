@@ -54,7 +54,7 @@ def test_csv_options(in_type, pd_old_type, pd_new_type):
         "dsfasd;dsffadsf",
         None,
         "this text\nhas a line break",
-        "this text, like so, has commas"
+        "this text, like so, has commas",
     ]
     assert df.columns.tolist() == ["i", "my_string", "nonexistent_column"]
     assert df["nonexistent_column"].isnull().all()
