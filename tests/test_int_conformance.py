@@ -17,7 +17,7 @@ from arrow_pd_parser.parse import pa_read_csv_to_pandas
         ("uint64", "float64", "Int64"),
     ],
 )
-def test_int(in_type, pd_old_type, pd_new_type):
+def test_int_csv(in_type, pd_old_type, pd_new_type):
     test_col_types = {"int_col": getattr(pa, in_type)()}
     df_old = pa_read_csv_to_pandas(
         "tests/data/int_type.csv", test_col_types, pd_integer=False
@@ -28,3 +28,7 @@ def test_int(in_type, pd_old_type, pd_new_type):
         "tests/data/int_type.csv", test_col_types, pd_integer=True
     )
     assert str(df_new.my_int.dtype) == pd_new_type
+
+
+def test_int_jsonl():
+    
