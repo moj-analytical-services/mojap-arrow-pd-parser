@@ -87,7 +87,6 @@ def arrow_to_pandas(
     Returns:
         Pandas dataframe with mapped types
     """
-
     tm = generate_type_mapper(
         pd_boolean, pd_integer, pd_string, pd_date_type, pd_timestamp_type
     )
