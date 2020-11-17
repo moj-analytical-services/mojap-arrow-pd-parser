@@ -1,14 +1,18 @@
 import numpy as np
 import pyarrow as pa
 import pandas as pd
-
+import warnings
 
 def generate_type_mapper(
-    pd_boolean, pd_integer, pd_string, pd_date_type, pd_timestamp_type
+    pd_boolean=None,
+    pd_integer=None,
+    pd_string=None,
+    pd_date_type=None,
+    pd_timestamp_type=None,
 ):
     tm = {}
     if pd_boolean:
-        bool_map = {pa.bool_(): "boolean"}
+        bool_map = {pa.bool_(): pd.BooleanDtype()}
         tm = {**tm, **bool_map}
     if pd_string:
         string_map = {pa.string(): pd.StringDtype()}
@@ -42,7 +46,7 @@ def generate_type_mapper(
         tm = {**tm, **int_map}
 
     if pd_date_type == "pd_period":
-        date_map = {pa.date64: pd.PeriodDtype("ms")}
+        date_map = {pa.date64(): pd.PeriodDtype("ms")}
         tm = {**tm, **date_map}
 
     if pd_timestamp_type == "pd_period":
@@ -67,23 +71,38 @@ def arrow_to_pandas(
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
 ):
-    """Converts arrow table to stricter pandas datatypes based on options.
-
+    """
+    Converts arrow table to stricter pandas datatypes based on options.
     Args:
         arrow_table (pa.Table): An arrow table
-
         pd_boolean (bool, optional): converts bools to the new pandas BooleanDtype.
-        Otherwise will convert to bool (if not nullable) and object of (True, False, None) if nulls exist. Defaults to True.
-        
+        Otherwise will convert to bool (if not nullable)
+        and object of (True, False, None) if nulls exist. Defaults to True.
         pd_integer (bool, optional): [description]. Defaults to True.
-        
         pd_string (bool, optional): [description]. Defaults to True.
-
-        pd_date_type (str, optional): Can be either datetime_object, pd_timestamp or pd_period. Defaults to datetime_object.
-        pd_timestamp_type (str, optional): Can be either datetime_object, pd_timestamp or pd_period. Defaults to datetime_object.
+        pd_date_type (str, optional): Can be either datetime_object,
+        pd_timestamp or pd_period. Defaults to datetime_object.
+        pd_timestamp_type (str, optional): Can be either datetime_object,
+        pd_timestamp or pd_period. Defaults to datetime_object.
     Returns:
         Pandas dataframe with mapped types
     """
+
+    cant_convert_cols = []
+    if pd_date_type == "pd_period":
+        for c in arrow_table.schema:
+            if str(c.type).startswith("date32"):
+                cant_convert_cols.append(c.name)
+
+        if cant_convert_cols:
+            warn_msg = (
+                "date32 pyarrow types (seen in columns: "
+                f"{cant_convert_cols}) cannot be converted to ",
+                "pd.PeriodDtype setting all dates to default type: ",
+                "datetime_object"
+            )
+            warnings.warn(warn_msg)
+            pd_date_type = "datetime_object"
 
     tm = generate_type_mapper(
         pd_boolean, pd_integer, pd_string, pd_date_type, pd_timestamp_type
