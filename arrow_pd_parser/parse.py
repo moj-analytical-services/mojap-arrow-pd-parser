@@ -97,4 +97,3 @@ def pa_read_json_to_pandas(
     )
 
     return df
-    
