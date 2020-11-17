@@ -79,8 +79,10 @@ def arrow_to_pandas(
 
         pd_string (bool, optional): [description]. Defaults to True.
 
-        pd_date_type (str, optional): Can be either datetime_object, pd_timestamp or pd_period. Defaults to datetime_object.
-        pd_timestamp_type (str, optional): Can be either datetime_object, pd_timestamp or pd_period. Defaults to datetime_object.
+        pd_date_type (str, optional): Can be either datetime_object,
+         pd_timestamp or pd_period. Defaults to datetime_object.
+        pd_timestamp_type (str, optional): Can be either datetime_object,
+         pd_timestamp or pd_period. Defaults to datetime_object.
     Returns:
         Pandas dataframe with mapped types
     """
