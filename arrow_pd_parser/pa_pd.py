@@ -115,6 +115,6 @@ def arrow_to_pandas(
     df = arrow_table.to_pandas(
         types_mapper=tm,
         date_as_object=date_as_object,
-        timestamp_as_object=timestamp_as_object,  # Karik this fails
+        timestamp_as_object=timestamp_as_object,
     )
     return df
