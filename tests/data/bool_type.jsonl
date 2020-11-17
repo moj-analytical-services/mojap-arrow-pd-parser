@@ -1,0 +1,10 @@
+{"i":0,"my_bool":true,"my_nullable_bool":true}
+{"i":1,"my_bool":true,"my_nullable_bool":true}
+{"i":2,"my_bool":false,"my_nullable_bool":false}
+{"i":3,"my_bool":true,"my_nullable_bool":true}
+{"i":4,"my_bool":true,"my_nullable_bool":null}
+{"i":5,"my_bool":true,"my_nullable_bool":true}
+{"i":6,"my_bool":true,"my_nullable_bool":true}
+{"i":7,"my_bool":false,"my_nullable_bool":false}
+{"i":8,"my_bool":true,"my_nullable_bool":true}
+{"i":9,"my_bool":true,"my_nullable_bool":true}
