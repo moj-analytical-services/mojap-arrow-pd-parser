@@ -1,4 +1,4 @@
-from pyarrow import csv
+from pyarrow import csv, json
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
 
@@ -30,6 +30,23 @@ def pa_read_csv(
     return pa_csv_table
 
 
+def pa_read_json(json_path, parse_options=None, read_options=None):
+    if parse_options is None:
+        parse_options = {}
+    if read_options is None:
+        read_options = {}
+
+    json_parse = json.ParseOptions(**parse_options)
+    json_read = json.ReadOptions(**read_options)
+
+    pa_json_table = json.read_json(
+        json_path,
+        parse_options=json_parse,
+        read_options=json_read,
+    )
+    return pa_json_table
+
+
 def pa_read_csv_to_pandas(
     csv_path,
     test_col_types,
@@ -56,3 +73,28 @@ def pa_read_csv_to_pandas(
     )
 
     return df
+
+
+def pa_read_json_to_pandas(
+    json_path,
+    pd_boolean: bool = True,
+    pd_integer: bool = True,
+    pd_string: bool = True,
+    pd_date_type: str = "datetime_object",
+    pd_timestamp_type: str = "datetime_object",
+    parse_options=None,
+    read_options=None,
+):
+
+    arrow_table = pa_read_json(json_path, parse_options, read_options)
+    df = arrow_to_pandas(
+        arrow_table,
+        pd_boolean=pd_boolean,
+        pd_integer=pd_integer,
+        pd_string=pd_string,
+        pd_date_type=pd_date_type,
+        pd_timestamp_type=pd_timestamp_type,
+    )
+
+    return df
+    

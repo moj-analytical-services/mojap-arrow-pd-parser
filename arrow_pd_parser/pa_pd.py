@@ -3,6 +3,7 @@ import pyarrow as pa
 import pandas as pd
 import warnings
 
+
 def generate_type_mapper(
     pd_boolean=None,
     pd_integer=None,
