@@ -10,14 +10,15 @@ from pandas import Series
     "in_type,pd_old_type,pd_new_type", [("string", "object", "string")],
 )
 def test_string(in_type, pd_old_type, pd_new_type):
-    test_col_types = {"string_col": getattr(pa, "string")()}
+
+    schema = pa.schema([("string_col", pa.string())])
     df_old = pa_read_csv_to_pandas(
-        "tests/data/string_type.csv", test_col_types, pd_string=False
+        "tests/data/string_type.csv", schema, pd_string=False
     )
     assert str(df_old.my_string.dtype) == pd_old_type
 
     df_new = pa_read_csv_to_pandas(
-        "tests/data/string_type.csv", test_col_types, pd_string=True
+        "tests/data/string_type.csv", schema, pd_string=True
     )
     assert str(df_new.my_string.dtype) == pd_new_type
 
@@ -26,7 +27,7 @@ def test_string(in_type, pd_old_type, pd_new_type):
     "in_type,pd_old_type,pd_new_type", [("string", "object", "string")],
 )
 def test_csv_options(in_type, pd_old_type, pd_new_type):
-    test_col_types = {"string_col": getattr(pa, "string")()}
+    schema = pa.schema([("string_col", pa.string())])
     parse_options = {
         "quote_char": "'",
         "escape_char": "\\",
@@ -42,7 +43,7 @@ def test_csv_options(in_type, pd_old_type, pd_new_type):
     }
     df = pa_read_csv_to_pandas(
         "tests/data/csv_options_test.csv",
-        test_col_types,
+        schema,
         pd_string=False,
         parse_options=parse_options,
         convert_options=convert_options,
