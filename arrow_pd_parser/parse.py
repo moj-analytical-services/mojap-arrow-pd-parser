@@ -32,7 +32,7 @@ def pa_read_csv(
             and skipping rows.
 
     Returns:
-        pyarrow.Table: the csv file in pyarrow format
+        pyarrow.Table: the csv file in pyarrow format.
     """
     if convert_options is None:
         convert_options = {}
@@ -60,6 +60,33 @@ def pa_read_csv(
         read_options=csv_read,
     )
     return pa_csv_table
+
+
+def pa_read_json(json_path, parse_options=None, read_options=None):
+    """Read a jsonlines file into an Arrow table.
+
+    Args:
+        json_path (str): the file path for the jsonl file you want to read.
+        parse_options (dict, optional): dictionary of arguments for
+            pyarrow json.ParseOptions. Defaults to None.
+        read_options (dict, optional): dictionary of arguments for
+            pyarrow json.ReadOptions. Defaults to None.
+
+    Returns:
+        pyarrow.Table: the jsonl file in pyarrow format.
+    """
+    if parse_options is None:
+        parse_options = {}
+    if read_options is None:
+        read_options = {}
+
+    json_parse = json.ParseOptions(**parse_options)
+    json_read = json.ReadOptions(**read_options)
+
+    pa_json_table = json.read_json(
+        json_path, parse_options=json_parse, read_options=json_read,
+    )
+    return pa_json_table
 
 
 def pa_read_csv_to_pandas(
@@ -99,7 +126,7 @@ def pa_read_csv_to_pandas(
             characters. Defaults to None.
         read_options (dict, optional): dictionary of arguments for
             pyarrow csv.ReadOptions. Includes options for file encoding
-            and skipping rowsDefaults to None.
+            and skipping rows. Defaults to None.
 
     Returns:
         Pandas DataFrame: the csv data as a dataframe, with the specified data types
