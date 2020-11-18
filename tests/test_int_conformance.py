@@ -19,6 +19,13 @@ parameters = [
 
 @pytest.mark.parametrize("in_type,pd_old_type,pd_new_type", parameters)
 def test_int_csv(in_type, pd_old_type, pd_new_type):
+    """Testing csv mapping from pyarrow to Pandas data types.
+
+    Args:
+        in_type (str): pyarrow data type read in from the csv.
+        pd_old_type (str): old pandas data type mapping.
+        pd_new_type (str): new pandas data type mapping.
+    """
     test_col_types = {"int_col": getattr(pa, in_type)()}
     test_file = "tests/data/int_type.csv"
 
@@ -31,6 +38,14 @@ def test_int_csv(in_type, pd_old_type, pd_new_type):
 
 @pytest.mark.parametrize("in_type,pd_old_type,pd_new_type", parameters)
 def test_int_jsonl(in_type, pd_old_type, pd_new_type):
+    """Testing jsonl mapping from pyarrow to Pandas data types.
+
+    Args:
+        in_type (str): pyarrow data type mapping,
+            as expected to be read in from the jsonl.
+        pd_old_type (str): old pandas data type mapping.
+        pd_new_type (str): new pandas data type mapping.
+    """
     test_col_types = {"int_col": getattr(pa, in_type)()}
     test_file = "tests/data/int_type.jsonl"
 
