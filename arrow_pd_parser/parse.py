@@ -44,8 +44,8 @@ def pa_read_csv(
     if schema is not None:
         if "column_types" in convert_options:
             raise KeyError(
-                "column_types cannot be a set option as schema"
-                "is is used as this parameter"
+                "column_types cannot be a set option as schema "
+                "is used as this parameter"
             )
         else:
             convert_options["column_types"] = schema
@@ -150,8 +150,8 @@ def pa_read_json(
     if schema is not None:
         if "explicit_schema" in parse_options:
             raise KeyError(
-                "explicit_schema cannot be a set option as schema"
-                "is is used as this parameter"
+                "explicit_schema cannot be a set option as schema "
+                "is used as this parameter"
             )
         else:
             parse_options["explicit_schema"] = schema
