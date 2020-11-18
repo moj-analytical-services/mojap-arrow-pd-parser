@@ -1,11 +1,18 @@
 import pyarrow as pa
-
+import pandas as pd
 from pandas.testing import assert_frame_equal
 from arrow_pd_parser.parse import pa_read_csv_to_pandas, pa_read_json_to_pandas
 
 
-def test_file_reader():
+def test_file_reader_returns_df():
+    df = pa_read_json_to_pandas("tests/data/example_data.csv")
+    assert isinstance(df, pd.DataFrame)
 
+    df = pa_read_json_to_pandas("tests/data/example_data.jsonl")
+    assert isinstance(df, pd.DataFrame)
+
+
+def test_file_reader_works_with_schema():
     csv_schema = pa.schema([("test", pa.string()), ("a_column", pa.string())])
     df_csv = pa_read_csv_to_pandas("tests/data/example_data.csv")
     df_csv_schema = pa_read_csv_to_pandas("tests/data/example_data.csv", csv_schema)
