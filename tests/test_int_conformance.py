@@ -41,7 +41,7 @@ def test_int_jsonl(in_type, pd_old_type, pd_new_type):
     """Testing jsonl mapping from pyarrow to Pandas data types.
 
     Args:
-        in_type (str): pyarrow data type mapping, 
+        in_type (str): pyarrow data type mapping,
             as expected to be read in from the jsonl.
         pd_old_type (str): old pandas data type mapping.
         pd_new_type (str): new pandas data type mapping, set as default.
