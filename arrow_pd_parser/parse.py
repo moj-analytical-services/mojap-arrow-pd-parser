@@ -62,33 +62,6 @@ def pa_read_csv(
     return pa_csv_table
 
 
-def pa_read_json(json_path, parse_options=None, read_options=None):
-    """Read a jsonlines file into an Arrow table.
-
-    Args:
-        json_path (str): the file path for the jsonl file you want to read.
-        parse_options (dict, optional): dictionary of arguments for
-            pyarrow json.ParseOptions. Defaults to None.
-        read_options (dict, optional): dictionary of arguments for
-            pyarrow json.ReadOptions. Defaults to None.
-
-    Returns:
-        pyarrow.Table: the jsonl file in pyarrow format.
-    """
-    if parse_options is None:
-        parse_options = {}
-    if read_options is None:
-        read_options = {}
-
-    json_parse = json.ParseOptions(**parse_options)
-    json_read = json.ReadOptions(**read_options)
-
-    pa_json_table = json.read_json(
-        json_path, parse_options=json_parse, read_options=json_read,
-    )
-    return pa_json_table
-
-
 def pa_read_csv_to_pandas(
     input_file: Union[IO, str],
     schema: pa.Schema = None,
@@ -113,10 +86,10 @@ def pa_read_csv_to_pandas(
         pd_integer: if True, converts integers to Pandas int64 format.
             If False, uses float64. Defaults to True.
         pd_string: Defaults to True.
-        pd_date_type (str, optional): specifies the date type. Can be one of: "datetime_object",
-            "pd_timestamp" or "pd_period".
-        pd_timestamp_type (str, optional): specifies the datetime type. Can be one of: "datetime_object",
-            "pd_timestamp" or "pd_period".
+        pd_date_type (str, optional): specifies the date type. Can be one of:
+            "datetime_object", "pd_timestamp" or "pd_period".
+        pd_timestamp_type (str, optional): specifies the datetime type. Can be one of:
+            "datetime_object", "pd_timestamp" or "pd_period".
         convert_options (dict, optional): dictionary of arguments for pyarrow
             csv.ConvertOptions. Will raise an error if dict has a 'column_types' and
             and schema is provided. This is because the schema will be used as the
@@ -216,10 +189,10 @@ def pa_read_json_to_pandas(
             If False, uses float64.
         pd_string (bool, optional): if True, converts integers to Pandas StringDtype.
             If False, leaves in the Pandas default object format.
-        pd_date_type (str, optional): specifies the date type. Can be one of: "datetime_object",
-            "pd_timestamp" or "pd_period".
-        pd_timestamp_type (str, optional): specifies the datetime type. Can be one of: "datetime_object",
-            "pd_timestamp" or "pd_period".
+        pd_date_type (str, optional): specifies the date type. Can be one of:
+            "datetime_object", "pd_timestamp" or "pd_period".
+        pd_timestamp_type (str, optional): specifies the datetime type. Can be one of:
+            "datetime_object", "pd_timestamp" or "pd_period".
         parse_options (dict, optional): dictionary of arguments for
             pyarrow json.ParseOptions. Will raise an error if dict has an
             'explicit_schema' key and a schema is provided. This is because
