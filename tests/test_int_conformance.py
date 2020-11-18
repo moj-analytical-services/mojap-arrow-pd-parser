@@ -54,3 +54,4 @@ def test_int_jsonl(in_type, pd_old_type, pd_new_type):
 
     df_new = pa_read_json_to_pandas(test_file, test_col_types, pd_integer=True)
     assert str(df_new.my_int.dtype) == pd_new_type
+    
