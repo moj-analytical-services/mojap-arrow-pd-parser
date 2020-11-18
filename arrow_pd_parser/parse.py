@@ -5,6 +5,7 @@ from arrow_pd_parser.pa_pd import arrow_to_pandas
 
 from typing import Union, IO
 
+
 def pa_read_csv(
     input_file: Union[IO, str],
     schema: Union[pa.Schema, None] = None,
@@ -65,7 +66,7 @@ def pa_read_json(
     input_file: Union[IO, str],
     schema: pa.Schema = None,
     parse_options: dict = None,
-    read_options: dict = None
+    read_options: dict = None,
 ):
     """Read a jsonlines file into an Arrow table.
 
