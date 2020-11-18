@@ -11,7 +11,7 @@ def generate_type_mapper(
     pd_date_type=None,
     pd_timestamp_type=None,
 ):
-    """[summary]
+    """Specifies the pyarrow data types mapping to corresponding Pandas data types.
 
     Args:
         pd_boolean: specifies need to reference new pandas bool type. Defaults to None.
