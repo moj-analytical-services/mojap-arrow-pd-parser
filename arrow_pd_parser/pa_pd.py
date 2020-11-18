@@ -11,6 +11,18 @@ def generate_type_mapper(
     pd_date_type=None,
     pd_timestamp_type=None,
 ):
+    """[summary]
+
+    Args:
+        pd_boolean: specifies need to reference new pandas bool type. Defaults to None.
+        pd_integer: specifies need to reference new pandas int type. Defaults to None.
+        pd_string: specifies need to reference new pandas str type. Defaults to None.
+        pd_date_type: Defaults to None.
+        pd_timestamp_type: Defaults to None.
+
+    Returns:
+        Type mappings between pyarrow and pandas data types.
+    """
     tm = {}
     if pd_boolean:
         bool_map = {pa.bool_(): pd.BooleanDtype()}
@@ -77,8 +89,8 @@ def arrow_to_pandas(
     Args:
         arrow_table (pa.Table): An arrow table
         pd_boolean (bool, optional): converts bools to the new pandas BooleanDtype.
-        Otherwise will convert to bool (if not nullable)
-        and object of (True, False, None) if nulls exist. Defaults to True.
+            Otherwise will convert to bool (if not nullable)
+            and object of (True, False, None) if nulls exist. Defaults to True.
         pd_integer (bool, optional): [description]. Defaults to True.
         pd_string (bool, optional): [description]. Defaults to True.
         pd_date_type (str, optional): Can be either datetime_object,

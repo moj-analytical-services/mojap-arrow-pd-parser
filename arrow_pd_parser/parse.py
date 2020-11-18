@@ -13,20 +13,20 @@ def pa_read_csv(
     """Read a csv file into an Arrow table.
 
     Args:
-        csv_path (str): the CSV you want to read.
+        csv_path (str): the file path for the .CSV file you want to read.
         test_col_types (dict): dictionary mapping column names to Arrow data types
         convert_options (dict, optional): dictionary of arguments for pyarrow
             csv.ConvertOptions. Includes options for which columns to include
-            and leave out.
+            and leave out. Defaults to None.
         parse_options (dict, optional): dictionary of arguments for pyarrow
             csv.ParseOptions. Includes delimiters, quote characters and escape
             characters. Defaults to None.
         read_options (dict, optional): dictionary of arguments for
             pyarrow csv.ReadOptions. Includes options for file encoding
-            and skipping rowsDefaults to None.
+            and skipping rows. Defaults to None.
 
     Returns:
-        pyarrow.Table: the csv file in pyarrow format
+        pyarrow.Table: the csv file in pyarrow format.
     """
     if convert_options is None:
         convert_options = {}
@@ -52,14 +52,14 @@ def pa_read_json(json_path, parse_options=None, read_options=None):
     """Read a jsonlines file into an Arrow table.
 
     Args:
-        json_path (str): the jsonl you want to read.
+        json_path (str): the file path for the jsonl file you want to read.
         parse_options (dict, optional): dictionary of arguments for
             pyarrow json.ParseOptions. Defaults to None.
         read_options (dict, optional): dictionary of arguments for
             pyarrow json.ReadOptions. Defaults to None.
 
     Returns:
-        pyarrow.Table: the jsonl file in pyarrow format
+        pyarrow.Table: the jsonl file in pyarrow format.
     """
     if parse_options is None:
         parse_options = {}
@@ -97,17 +97,17 @@ def pa_read_csv_to_pandas(
         pd_integer: if True, converts integers to Pandas int64 format.
             If False, uses float64. Defaults to True.
         pd_string: Defaults to True.
-        pd_date_type: spcifies the date type. Defaults to "datetime_object".
-        pd_timestamp_type: spcifies the timestamp type. Defaults to "datetime_object".
+        pd_date_type: specifies the date type. Defaults to "datetime_object".
+        pd_timestamp_type: specifies the timestamp type. Defaults to "datetime_object".
         convert_options (dict, optional): dictionary of arguments for pyarrow
             csv.ConvertOptions. Includes options for which columns to include
-            and leave out.
+            and leave out. Defaults to None.
         parse_options (dict, optional): dictionary of arguments for pyarrow
             csv.ParseOptions. Includes delimiters, quote characters and escape
             characters. Defaults to None.
         read_options (dict, optional): dictionary of arguments for
             pyarrow csv.ReadOptions. Includes options for file encoding
-            and skipping rowsDefaults to None.
+            and skipping rows. Defaults to None.
 
     Returns:
         Pandas DataFrame: the csv data as a dataframe, with the specified data types
@@ -157,7 +157,7 @@ def pa_read_json_to_pandas(
             json.ReadOptions. Defaults to None.
 
     Returns:
-        Pandas DataFrame: the csv data as a dataframe, with the specified data types
+        Pandas DataFrame: the csv data as a dataframe, with the specified data types.
     """
     arrow_table = pa_read_json(json_path, parse_options, read_options)
     df = arrow_to_pandas(
