@@ -14,9 +14,10 @@ def generate_type_mapper(
     """Specifies the pyarrow data types mapping to corresponding Pandas data types.
 
     Args:
-        pd_boolean: specifies need to reference new pandas bool type. Defaults to None.
-        pd_integer: specifies need to reference new pandas int type. Defaults to None.
-        pd_string: specifies need to reference new pandas str type. Defaults to None.
+        pd_boolean: if not noe, use the new Pandas bool type. Defaults to None.
+        pd_integer: if not None, use the new Pandas nullable integer type rather than
+            defaulting to floats. Defaults to None.
+        pd_string: if not None, use the new Pandas str type. Defaults to None.
         pd_date_type: Defaults to None.
         pd_timestamp_type: Defaults to None.
 
