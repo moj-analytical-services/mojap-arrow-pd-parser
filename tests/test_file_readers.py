@@ -5,7 +5,7 @@ from arrow_pd_parser.parse import pa_read_csv_to_pandas, pa_read_json_to_pandas
 
 
 def test_file_reader_returns_df():
-    df = pa_read_json_to_pandas("tests/data/example_data.csv")
+    df = pa_read_csv_to_pandas("tests/data/example_data.csv")
     assert isinstance(df, pd.DataFrame)
 
     df = pa_read_json_to_pandas("tests/data/example_data.jsonl")
