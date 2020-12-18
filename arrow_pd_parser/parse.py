@@ -6,12 +6,70 @@ from arrow_pd_parser.pa_pd import arrow_to_pandas
 from typing import Union, IO
 
 
+def update_existing_schema(
+    current_schema: pa.Schema, new_schema: pa.Schema
+) -> pa.Schema:
+    """
+    Takes the current schema and updates any fields in the current
+    schema with fields from the new_schema. If current_schema has
+    fields that do not exist in new_schema then they are unchanged.
+    If current_schema has fields that also exist in new_schema then
+    the field in new_schema is chosen. If fields exist in new_schema
+    but not in current, these will be ignored.
+
+    Args:
+        current_schema (pa.Schema): Schema to update
+        new_schema (pa.Schema): Schema with fields that you wish to be
+          used to update current_schema
+
+    Returns:
+        pa.Schema: Returns a schema with the same column order as
+        current_schema but with the fields updated for any fields
+        that matched new_schema.
+    """
+
+    updated_schema = pa.schema([])
+
+    for field in current_schema:
+        if field.name in new_schema.names:
+            updated_schema = updated_schema.append(new_schema.field(field.name))
+        else:
+            updated_schema = updated_schema.append(field)
+    return updated_schema
+
+
+def cast_arrow_table_to_schema(
+    tab: pa.Table,
+    schema: Union[pa.Schema, None] = None,
+    expect_full_schema: bool = True,
+):
+    """Casts an arrow schema to a new or partial schema
+
+    Args:
+        tab (pa.Table): An arrow table
+        schema (Union[pa.Schema, None], optional): [description]. Defaults to None.
+        expect_full_schema (bool, optional): if True, pyarrow reader will
+            expect the input schema to have fields for every col in the
+            input file. If False, then will only cast columns that
+            are listed in the schema, leaving all other columns to their
+            default type on read.
+    """
+
+    if expect_full_schema:
+        update_schema = schema
+    else:
+        update_schema = update_existing_schema(tab.schema, schema)
+
+    new_tab = tab.cast(update_schema)
+
+    return new_tab
+
+
 def pa_read_csv(
     input_file: Union[IO, str],
     schema: Union[pa.Schema, None] = None,
-    convert_options: dict = None,
-    parse_options: dict = None,
-    read_options: dict = None,
+    expect_full_schema: bool = True,
+    **kwargs
 ):
     """Read a csv file into an Arrow table.
 
@@ -20,59 +78,36 @@ def pa_read_csv(
             file-like object.
         schema (pyarrow.Schema): pyarrow Schema with the expected columns wanted.
             If unset pyarrow will infer datatypes.
-        convert_options (dict, optional): dictionary of arguments for pyarrow
-            csv.ConvertOptions. Will raise an error if dict has a 'column_types' and
-            and schema is provided. This is because the schema will be used as the
-            column_types of csv.ConvertOptions.
-        parse_options (dict, optional): dictionary of arguments for pyarrow
-            csv.ParseOptions. Includes delimiters, quote characters and escape
-            characters.
-        read_options (dict, optional): dictionary of arguments for
-            pyarrow csv.ReadOptions. Includes options for file encoding
-            and skipping rows.
+        expect_full_schema (bool, optional): if True, pyarrow reader will
+            expect the input schema to have fields for every col in the
+            input file. If False, then will only cast columns that
+            are listed in the schema, leaving all other columns to their
+            default type on read.
+        **kwargs (optional): Additional kwargs are passed to pyarrow.csv.read_csv
 
     Returns:
         pyarrow.Table: the csv file in pyarrow format.
     """
-    if convert_options is None:
-        convert_options = {}
-    if parse_options is None:
-        parse_options = {}
-    if read_options is None:
-        read_options = {}
 
-    if schema is not None:
-        if "column_types" in convert_options:
-            raise KeyError(
-                "column_types cannot be a set option as schema "
-                "is used as this parameter"
-            )
-        else:
-            convert_options["column_types"] = schema
-    csv_convert = csv.ConvertOptions(**convert_options)
-    csv_parse = csv.ParseOptions(**parse_options)
-    csv_read = csv.ReadOptions(**read_options)
+    pa_csv_table = csv.read_csv(input_file=input_file, **kwargs)
+    if schema:
+        pa_csv_table = cast_arrow_table_to_schema(
+            pa_csv_table, schema=schema, expect_full_schema=expect_full_schema
+        )
 
-    pa_csv_table = csv.read_csv(
-        input_file=input_file,
-        convert_options=csv_convert,
-        parse_options=csv_parse,
-        read_options=csv_read,
-    )
     return pa_csv_table
 
 
 def pa_read_csv_to_pandas(
     input_file: Union[IO, str],
     schema: pa.Schema = None,
+    expect_full_schema: bool = True,
     pd_boolean: bool = True,
     pd_integer: bool = True,
     pd_string: bool = True,
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
-    convert_options=None,
-    parse_options=None,
-    read_options=None,
+    **kwargs
 ):
     """Read a csv file into an Arrow table and convert it to a Pandas DataFrame.
 
@@ -81,6 +116,11 @@ def pa_read_csv_to_pandas(
             file-like object.
         schema (pyarrow.Schema): pyarrow Schema with the expected columns wanted.
             If unset pyarrow will infer datatypes.
+        expect_full_schema (bool, optional): if True, pyarrow reader will
+            expect the input schema to have fields for every col in the
+            input file. If False, then will only cast columns that
+            are listed in the schema, leaving all other columns to their
+            default type on read.
         pd_boolean: whether to use the new pandas boolean format. Defaults to True.
             When set to False, uses a custom boolean format to coerce object type.
         pd_integer: if True, converts integers to Pandas int64 format.
@@ -90,23 +130,18 @@ def pa_read_csv_to_pandas(
             "datetime_object", "pd_timestamp" or "pd_period".
         pd_timestamp_type (str, optional): specifies the datetime type. Can be one of:
             "datetime_object", "pd_timestamp" or "pd_period".
-        convert_options (dict, optional): dictionary of arguments for pyarrow
-            csv.ConvertOptions. Will raise an error if dict has a 'column_types' and
-            and schema is provided. This is because the schema will be used as the
-            column_types of csv.ConvertOptions.
-        parse_options (dict, optional): dictionary of arguments for pyarrow
-            csv.ParseOptions. Includes delimiters, quote characters and escape
-            characters. Defaults to None.
-        read_options (dict, optional): dictionary of arguments for
-            pyarrow csv.ReadOptions. Includes options for file encoding
-            and skipping rows. Defaults to None.
+        **kwargs (optional): Additional kwargs are passed to pyarrow.csv.read_csv
 
     Returns:
         Pandas DataFrame: the csv data as a dataframe, with the specified data types
     """
     arrow_table = pa_read_csv(
-        input_file, schema, convert_options, parse_options, read_options
+        input_file,
+        schema,
+        expect_full_schema,
+        **kwargs
     )
+
     df = arrow_to_pandas(
         arrow_table,
         pd_boolean=pd_boolean,
@@ -122,8 +157,8 @@ def pa_read_csv_to_pandas(
 def pa_read_json(
     input_file: Union[IO, str],
     schema: pa.Schema = None,
-    parse_options: dict = None,
-    read_options: dict = None,
+    expect_full_schema: bool = True,
+    **kwargs
 ):
     """Read a jsonlines file into an Arrow table.
 
@@ -132,49 +167,37 @@ def pa_read_json(
             file-like object.
         schema (pyarrow.Schema): pyarrow Schema with the expected columns wanted.
             If unset pyarrow will infer datatypes.
-        parse_options (dict, optional): dictionary of arguments for
-            pyarrow json.ParseOptions. Will raise an error if dict has an
-            'explicit_schema' key and a schema is provided. This is because
-            the schema is used as the explicit_schema.
-        read_options (dict, optional): dictionary of arguments for
-            pyarrow json.ReadOptions.
+        expect_full_schema (bool, optional): if True, pyarrow reader will
+            expect the input schema to have fields for every col in the
+            input file. If False, then will only cast columns that
+            are listed in the schema, leaving all other columns to their
+            default type on read.
+        **kwargs (optional): Additional kwargs are passed to pyarrow.json.read_json
 
     Returns:
-        pyarrow.Table: the jsonl file in pyarrow format
+        pyarrow.Table: the jsonl file in pyarrow format casted to the specified schema
     """
-    if parse_options is None:
-        parse_options = {}
-    if read_options is None:
-        read_options = {}
 
-    if schema is not None:
-        if "explicit_schema" in parse_options:
-            raise KeyError(
-                "explicit_schema cannot be a set option as schema "
-                "is used as this parameter"
-            )
-        else:
-            parse_options["explicit_schema"] = schema
+    pa_json_table = json.read_json(input_file, **kwargs)
 
-    json_parse = json.ParseOptions(**parse_options)
-    json_read = json.ReadOptions(**read_options)
+    if schema:
+        pa_json_table = cast_arrow_table_to_schema(
+            pa_json_table, schema=schema, expect_full_schema=expect_full_schema
+        )
 
-    pa_json_table = json.read_json(
-        input_file, parse_options=json_parse, read_options=json_read
-    )
     return pa_json_table
 
 
 def pa_read_json_to_pandas(
     input_file: Union[IO, str],
     schema: pa.Schema = None,
+    expect_full_schema: bool = True,
     pd_boolean: bool = True,
     pd_integer: bool = True,
     pd_string: bool = True,
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
-    parse_options=None,
-    read_options=None,
+    **kwargs
 ):
     """Read a jsonlines file into an Arrow table and convert it to a Pandas DataFrame.
 
@@ -183,6 +206,11 @@ def pa_read_json_to_pandas(
             file-like object.
         schema (pyarrow.Schema): pyarrow Schema with the expected columns wanted.
             If unset pyarrow will infer datatypes.
+        expect_full_schema (bool, optional): if True, pyarrow reader will
+            expect the input schema to have fields for every col in the
+            input file. If False, then will only cast columns that
+            are listed in the schema, leaving all other columns to their
+            default type on read.
         pd_boolean (bool, optional): if True, converts booleans to Pandas BooleanDtype.
             If False, leaves in the Pandas default bool format.
         pd_integer (bool, optional): if True, converts integers to Pandas Int64Dtype.
@@ -193,17 +221,18 @@ def pa_read_json_to_pandas(
             "datetime_object", "pd_timestamp" or "pd_period".
         pd_timestamp_type (str, optional): specifies the datetime type. Can be one of:
             "datetime_object", "pd_timestamp" or "pd_period".
-        parse_options (dict, optional): dictionary of arguments for
-            pyarrow json.ParseOptions. Will raise an error if dict has an
-            'explicit_schema' key and a schema is provided. This is because
-            the schema is used as the explicit_schema.
-        read_options (dict, optional): dictionary of arguments for pyarrow
-            json.ReadOptions.
+        **kwargs (optional): Additional kwargs are passed to pyarrow.json.read_json
 
     Returns:
         Pandas DataFrame: the jsonl data as a dataframe, with the specified data types
     """
-    arrow_table = pa_read_json(input_file, schema, parse_options, read_options)
+    arrow_table = pa_read_json(
+        input_file,
+        schema,
+        expect_full_schema,
+        **kwargs
+    )
+
     df = arrow_to_pandas(
         arrow_table,
         pd_boolean=pd_boolean,

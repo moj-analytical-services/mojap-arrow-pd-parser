@@ -10,28 +10,37 @@ args = (
 )
 
 
-@pytest.mark.parametrize(*args)
-def test_bool_csv(col_name, pd_old_type, pd_new_type):
+@pytest.mark.parametrize(
+    "my_bool_dtype,my_nullable_bool_dtype,pd_boolean,data_type",
+    [
+        ("boolean", "boolean", True, "csv"),
+        ("bool", "object", False, "csv"),
+        ("boolean", "boolean", True, "jsonl"),
+        ("bool", "object", False, "jsonl"),
+    ],
+)
+def test_bool(my_bool_dtype, my_nullable_bool_dtype, pd_boolean, data_type):
 
-    schema = pa.schema([("bool_col", pa.bool_())])
-    df_old = pa_read_csv_to_pandas("tests/data/bool_type.csv", schema, pd_boolean=False)
-    assert str(df_old[col_name].dtype) == pd_old_type
+    schema = pa.schema(
+        [("i", pa.int8()), ("my_bool", pa.bool_()), ("my_nullable_bool", pa.bool_())]
+    )
 
-    df_new = pa_read_csv_to_pandas("tests/data/bool_type.csv", schema, pd_boolean=True)
-    assert str(df_new[col_name].dtype) == pd_new_type
+    function_lu = {"csv": pa_read_csv_to_pandas, "jsonl": pa_read_json_to_pandas}
 
+    df = function_lu[data_type](
+        f"tests/data/bool_type.{data_type}", schema, pd_boolean=pd_boolean
+    )
 
-@pytest.mark.parametrize(*args)
-def test_bool_jsonl(col_name, pd_old_type, pd_new_type):
-    df_old = pa_read_json_to_pandas("tests/data/bool_type.jsonl", pd_boolean=False)
-    assert str(df_old[col_name].dtype) == pd_old_type
-
-    df_new = pa_read_json_to_pandas("tests/data/bool_type.jsonl", pd_boolean=True)
-    assert str(df_new[col_name].dtype) == pd_new_type
+    assert str(df["my_bool"].dtype) == my_bool_dtype
+    assert str(df["my_nullable_bool"].dtype) == my_nullable_bool_dtype
 
 
 def test_bool_csv_and_json():
-    schema = pa.schema([("bool_col", pa.bool_())])
+    schema = pa.schema(
+        [("i", pa.int8()), ("my_bool", pa.bool_()), ("my_nullable_bool", pa.bool_())]
+    )
     df_csv = pa_read_csv_to_pandas("tests/data/bool_type.csv", schema, pd_boolean=True)
-    df_jsonl = pa_read_json_to_pandas("tests/data/bool_type.jsonl", pd_boolean=True)
+    df_jsonl = pa_read_json_to_pandas(
+        "tests/data/bool_type.jsonl", schema, pd_boolean=True
+    )
     assert df_csv.equals(df_jsonl)

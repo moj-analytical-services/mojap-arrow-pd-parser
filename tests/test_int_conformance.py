@@ -30,10 +30,10 @@ def test_int_csv(in_type, pd_old_type, pd_new_type):
     schema = pa.schema([("int_col", getattr(pa, in_type)())])
     test_file = "tests/data/int_type.csv"
 
-    df_old = pa_read_csv_to_pandas(test_file, schema, pd_integer=False)
+    df_old = pa_read_csv_to_pandas(test_file, schema, False, pd_integer=False)
     assert str(df_old.my_int.dtype) == pd_old_type
 
-    df_new = pa_read_csv_to_pandas(test_file, schema, pd_integer=True)
+    df_new = pa_read_csv_to_pandas(test_file, schema, False, pd_integer=True)
     assert str(df_new.my_int.dtype) == pd_new_type
 
 
@@ -50,8 +50,8 @@ def test_int_jsonl(in_type, pd_old_type, pd_new_type):
     schema = pa.schema([("int_col", getattr(pa, in_type)())])
     test_file = "tests/data/int_type.jsonl"
 
-    df_old = pa_read_json_to_pandas(test_file, schema, pd_integer=False)
+    df_old = pa_read_json_to_pandas(test_file, schema, False, pd_integer=False)
     assert str(df_old.my_int.dtype) == pd_old_type
 
-    df_new = pa_read_json_to_pandas(test_file, schema, pd_integer=True)
+    df_new = pa_read_json_to_pandas(test_file, schema, False, pd_integer=True)
     assert str(df_new.my_int.dtype) == pd_new_type
