@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arrow_pd_parser"
-version = "0.0.1"
+version = "0.1.0"
 description = "MoJ arrow-pd-parser"
 authors = ["Karik Isichei <karik.isichei@digital.justice.gov.uk>",
            "Alec Johnson <alec.johnson@digital.justice.gov.uk>",
