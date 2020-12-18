@@ -17,7 +17,12 @@ def test_string(in_type, pd_old_type, pd_new_type):
     )
     assert str(df_old.my_string.dtype) == pd_old_type
 
-    df_new = pa_read_csv_to_pandas("tests/data/string_type.csv", schema, False, pd_string=True)
+    df_new = pa_read_csv_to_pandas(
+        "tests/data/string_type.csv",
+        schema,
+        False,
+        pd_string=True
+    )
     assert str(df_new.my_string.dtype) == pd_new_type
 
 
