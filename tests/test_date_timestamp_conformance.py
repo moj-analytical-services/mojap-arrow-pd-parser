@@ -62,7 +62,10 @@ def test_datetime(in_type, pd_timestamp_type, out_type):
 
     # datetime_object
     df = pa_read_csv_to_pandas(
-        test_data_path, schema=schema, pd_timestamp_type=pd_timestamp_type,
+        test_data_path,
+        schema=schema,
+        expect_full_schema=False,
+        pd_timestamp_type=pd_timestamp_type,
     )
 
     test_str_dates = pd.read_csv(test_data_path, dtype=str)["my_datetime"]
@@ -101,10 +104,15 @@ def test_date(in_type, pd_date_type, out_type):
     if in_type == "date32" and pd_date_type == "pd_period":
         with pytest.warns(UserWarning):
             df = pa_read_csv_to_pandas(
-                test_data_path, schema, pd_date_type=pd_date_type,
+                test_data_path,
+                schema,
+                expect_full_schema=False,
+                pd_date_type=pd_date_type,
             )
     else:
-        df = pa_read_csv_to_pandas(test_data_path, schema, pd_date_type=pd_date_type,)
+        df = pa_read_csv_to_pandas(
+            test_data_path, schema, expect_full_schema=False, pd_date_type=pd_date_type
+        )
 
     test_str_dates = pd.read_csv(test_data_path, dtype=str)["my_date"]
     test_str_dates = [None if pd.isna(s) else s for s in test_str_dates]
