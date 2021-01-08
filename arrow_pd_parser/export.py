@@ -24,6 +24,7 @@ def pd_to_csv(
     new = df.copy()
 
     for col in new.columns:
+        # Convert period columns to strings so they're exported in a way Arrow can read
         if pd.api.types.is_period_dtype(new[col]):
             new[col] = new[col].dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -52,6 +53,7 @@ def pd_to_json(
     """
     new = df.copy()
 
+    # Convert date-related columns to strings Arrow can read consistently
     for col in new.columns:
         if pd.api.types.is_period_dtype(new[col]):
             new[col] = new[col].dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -63,7 +65,10 @@ def pd_to_json(
             ),
         ]):
             new[col] = new[col].astype(str)
-            new[col].replace(["nan", "NaT"], np.nan, regex=False, inplace=True)
+
+            # By default missing dates and datetimes become strings of "nan" or "NaT"
+            # This stops Arrow casting the column to date. Instead use proper Numpy NaN
+            new[col].replace(["nan", "NaT", "None"], np.nan, regex=False, inplace=True)
 
     new.to_json(
         output_file, orient=orient, lines=lines, indent=indent, **kwargs
