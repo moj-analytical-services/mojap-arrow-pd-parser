@@ -8,7 +8,7 @@ from typing import Union, IO
 def pd_to_csv(
     df: pd.DataFrame,
     output_file: Union[IO, str],
-    index=False,
+    index: bool = False,
     **kwargs,
 ):
     """Export a dataframe to a csv this package can open identically.
@@ -34,9 +34,9 @@ def pd_to_csv(
 def pd_to_json(
     df: pd.DataFrame,
     output_file: Union[IO, str],
-    orient="records",
-    lines=True,
-    indent=4,
+    orient: str = "records",
+    lines: bool = True,
+    indent: int = 4,
     **kwargs,
 ):
     """Export a dataframe to a json newlines file this package can open identically.
