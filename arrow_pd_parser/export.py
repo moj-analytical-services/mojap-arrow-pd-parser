@@ -65,9 +65,8 @@ def pd_to_json(
             ),
         ]):
             new[col] = new[col].astype(str)
-
-            # By default missing dates and datetimes become strings of "nan" or "NaT"
-            # This stops Arrow casting the column to date. Instead use proper Numpy NaN
+            # By default missing dates and datetimes become quoted strings in json.
+            # Arrow can't cast these to dates. So replace them all with numpy NaN.
             new[col].replace(["nan", "NaT", "None"], np.nan, regex=False, inplace=True)
 
     new.to_json(
