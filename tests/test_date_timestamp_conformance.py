@@ -131,7 +131,10 @@ def test_date(in_type, pd_date_type, out_type):
 
 
 @pytest.mark.skip(
-    reason="This currently fails (see issue #43), but adding in test boilerplate for future fix"
+    reason=(
+        "This currently fails (see issue #43), but adding in "
+        "test boilerplate for future fix."
+    )
 )
 def test_timestamps_as_strs():
     test_data_path = "tests/data/datetime_type.csv"
