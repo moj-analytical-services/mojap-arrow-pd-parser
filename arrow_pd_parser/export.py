@@ -6,10 +6,7 @@ from typing import Union, IO
 
 
 def pd_to_csv(
-    df: pd.DataFrame,
-    output_file: Union[IO, str],
-    index: bool = False,
-    **kwargs,
+    df: pd.DataFrame, output_file: Union[IO, str], index: bool = False, **kwargs,
 ):
     """Export a dataframe to a csv this package can open identically.
 
@@ -36,7 +33,6 @@ def pd_to_json(
     output_file: Union[IO, str],
     orient: str = "records",
     lines: bool = True,
-    indent: int = 4,
     **kwargs,
 ):
     """Export a dataframe to a json newlines file this package can open identically.
@@ -57,17 +53,17 @@ def pd_to_json(
     for col in new.columns:
         if pd.api.types.is_period_dtype(new[col]):
             new[col] = new[col].dt.strftime("%Y-%m-%d %H:%M:%S")
-        elif any([
-            pd.api.types.is_datetime64_any_dtype(new[col]),
-            isinstance(
-                new[col][new[col].notnull()].iloc[0],
-                (datetime.datetime, datetime.date)
-            ),
-        ]):
+        elif any(
+            [
+                pd.api.types.is_datetime64_any_dtype(new[col]),
+                isinstance(
+                    new[col][new[col].notnull()].iloc[0],
+                    (datetime.datetime, datetime.date),
+                ),
+            ]
+        ):
             new[col] = new[col].astype(pd.StringDtype())
             # Convert pd_timestamp string 'NaT' to NaN so PyArrow can read them
             new[col].replace("NaT", np.nan, regex=False, inplace=True)
 
-    new.to_json(
-        output_file, orient=orient, lines=lines, indent=indent, **kwargs
-    )
+    new.to_json(output_file, orient=orient, lines=lines, **kwargs)
