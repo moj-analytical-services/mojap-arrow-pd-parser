@@ -53,7 +53,7 @@ def test_update_existing_schema():
     )
 
     expected = pa.schema(
-        [("col1", pa.int64()), ("col2", pa.string()), ("col3", pa.float64()),]
+        [("col1", pa.int64()), ("col2", pa.string()), ("col3", pa.float64())]
     )
 
     actual = update_existing_schema(current, new)
