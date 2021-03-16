@@ -35,45 +35,25 @@ def test_file_reader_works_with_schema():
 
     # Check raises error on both readers
     missing_schema = pa.schema(
-        [
-            ("b", pa.float64()),
-            ("c", pa.string()),
-            ("d", pa.bool_())
-        ]
+        [("b", pa.float64()), ("c", pa.string()), ("d", pa.bool_())]
     )
     with pytest.raises(ValueError):
-        pa_read_json_to_pandas(
-            "tests/data/example_data.jsonl", missing_schema
-        )
+        pa_read_json_to_pandas("tests/data/example_data.jsonl", missing_schema)
     with pytest.raises(ValueError):
-        pa_read_csv_to_pandas(
-            "tests/data/example_data.csv", missing_schema
-        )
+        pa_read_csv_to_pandas("tests/data/example_data.csv", missing_schema)
 
 
 def test_update_existing_schema():
     current = pa.schema(
-        [
-            ("col1", pa.int8()),
-            ("col2", pa.string()),
-            ("col3", pa.decimal128(5, 3))
-        ]
+        [("col1", pa.int8()), ("col2", pa.string()), ("col3", pa.decimal128(5, 3))]
     )
 
     new = pa.schema(
-        [
-            ("col1", pa.int64()),
-            ("col3", pa.float64()),
-            ("col4", pa.binary())
-        ]
+        [("col1", pa.int64()), ("col3", pa.float64()), ("col4", pa.binary())]
     )
 
     expected = pa.schema(
-        [
-            ("col1", pa.int64()),
-            ("col2", pa.string()),
-            ("col3", pa.float64()),
-        ]
+        [("col1", pa.int64()), ("col2", pa.string()), ("col3", pa.float64()),]
     )
 
     actual = update_existing_schema(current, new)
@@ -81,12 +61,7 @@ def test_update_existing_schema():
 
 
 def test_arrow_table_cast():
-    expected_schema = pa.schema(
-        [
-            ("i", pa.int8()),
-            ("my_int", pa.string())
-        ]
-    )
+    expected_schema = pa.schema([("i", pa.int8()), ("my_int", pa.string())])
     tab = pa.csv.read_csv("tests/data/int_type.csv")
     new_tab1 = cast_arrow_table_to_schema(tab, expected_schema)
 
@@ -94,24 +69,13 @@ def test_arrow_table_cast():
     assert new_tab1.schema != tab.schema
 
     # Check errors
-    missing_schema = pa.schema(
-        [
-            ("my_int", pa.string())
-        ]
-    )
+    missing_schema = pa.schema([("my_int", pa.string())])
     with pytest.raises(ValueError):
         _ = cast_arrow_table_to_schema(tab, missing_schema)
 
-    new_tab2 = cast_arrow_table_to_schema(
-        tab,
-        missing_schema,
-        False
-    )
+    new_tab2 = cast_arrow_table_to_schema(tab, missing_schema, False)
 
-    expected_schema = update_existing_schema(
-        tab.schema,
-        missing_schema
-    )
+    expected_schema = update_existing_schema(tab.schema, missing_schema)
 
     assert new_tab2.schema == expected_schema
     assert new_tab2.schema != tab.schema

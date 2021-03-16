@@ -135,12 +135,7 @@ def pa_read_csv_to_pandas(
     Returns:
         Pandas DataFrame: the csv data as a dataframe, with the specified data types
     """
-    arrow_table = pa_read_csv(
-        input_file,
-        schema,
-        expect_full_schema,
-        **kwargs
-    )
+    arrow_table = pa_read_csv(input_file, schema, expect_full_schema, **kwargs)
 
     df = arrow_to_pandas(
         arrow_table,
@@ -226,12 +221,7 @@ def pa_read_json_to_pandas(
     Returns:
         Pandas DataFrame: the jsonl data as a dataframe, with the specified data types
     """
-    arrow_table = pa_read_json(
-        input_file,
-        schema,
-        expect_full_schema,
-        **kwargs
-    )
+    arrow_table = pa_read_json(input_file, schema, expect_full_schema, **kwargs)
 
     df = arrow_to_pandas(
         arrow_table,

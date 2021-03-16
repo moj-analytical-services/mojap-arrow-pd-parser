@@ -3,7 +3,10 @@ import datetime
 import pandas as pd
 import pyarrow as pa
 import numpy as np
-from arrow_pd_parser.parse import pa_read_csv_to_pandas
+from arrow_pd_parser.parse import (
+    pa_read_csv_to_pandas,
+    pa_read_json_to_pandas,
+)
 
 
 def pd_datetime_series_to_list(s, series_type, date=False):
@@ -125,3 +128,20 @@ def test_date(in_type, pd_date_type, out_type):
         df.my_date, out_type.split("[")[0], date=True
     )
     assert test_str_dates == actual_str_dates
+
+
+@pytest.mark.skip(
+    reason="This currently fails (see issue #43), but adding in test boilerplate for future fix"
+)
+def test_timestamps_as_strs():
+    test_data_path = "tests/data/datetime_type.csv"
+    test_str_dates = pd.read_csv(test_data_path, dtype="string")["my_datetime"]
+
+    schema = pa.schema([("my_datetime", pa.string())])
+    df = pa_read_csv_to_pandas(test_data_path, schema, expect_full_schema=False)
+    assert df["my_datetime"].to_list() == test_str_dates.to_list()
+
+    df = pa_read_json_to_pandas(
+        test_data_path.replace(".csv", ".jsonl"), schema, expect_full_schema=False
+    )
+    assert df["my_datetime"].to_list() == test_str_dates.to_list()
