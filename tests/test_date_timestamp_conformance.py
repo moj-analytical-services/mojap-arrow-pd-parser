@@ -84,6 +84,60 @@ def test_datetime(in_type, pd_timestamp_type, out_type):
     assert test_str_dates == actual_str_dates
 
 
+
+@pytest.mark.parametrize(
+    "pd_timestamp_type,expect_error",
+    [
+        ("datetime_object", False),
+        ("pd_timestamp", True),
+        ("pd_period", False),
+    ],
+)
+def test_out_of_bounds_datetime(pd_timestamp_type, expect_error):
+
+    test_data_path = "tests/data/datetime_type_oob.csv"
+    test_str_dates = pd.read_csv(test_data_path, dtype=str)["my_datetime"]
+    test_str_dates = [None if pd.isna(s) else s for s in test_str_dates]
+
+    schema = pa.schema([("my_datetime", pa.timestamp("s"))])
+
+    out_type_lu = {
+        "datetime_object": "object",
+        "pd_timestamp": "datetime64",
+        "pd_period": "period",
+    }
+    out_type = out_type_lu[pd_timestamp_type]
+
+    # datetime_object
+    try:
+        df = pa_read_csv_to_pandas(
+            test_data_path,
+            schema=schema,
+            expect_full_schema=False,
+            pd_timestamp_type=pd_timestamp_type,
+        )
+    except pa.lib.ArrowInvalid as e:  # pa.lib.ArrowInvalid
+        assert expect_error is True
+    else:
+        df = pa_read_csv_to_pandas(
+            test_data_path,
+            schema=schema,
+            expect_full_schema=False,
+            pd_timestamp_type=pd_timestamp_type,
+        )
+        test_str_dates = pd.read_csv(test_data_path, dtype=str)["my_datetime"]
+        test_str_dates = [None if pd.isna(s) else s for s in test_str_dates]
+
+        if out_type == "object":
+            assert isinstance(df.my_datetime[0], datetime.datetime)
+
+        actual_str_dates = pd_datetime_series_to_list(
+            df.my_datetime, out_type.split("[")[0], date=False
+        )
+
+        assert test_str_dates == actual_str_dates
+
+
 @pytest.mark.parametrize(
     "in_type,pd_date_type,out_type",
     [
@@ -133,7 +187,7 @@ def test_date(in_type, pd_date_type, out_type):
 @pytest.mark.skip(
     reason=(
         "This currently fails (see issue #43), but adding in "
-        "test boilerplate for future fix."
+        "test boilerplate for a future fix."
     )
 )
 def test_timestamps_as_strs():
