@@ -72,29 +72,28 @@ def pd_to_json(
 
 def pd_to_parquet(
     df: pd.DataFrame,
-    output_file: Union[IO, str],
-    arrow_schema: pa.lib.Schema,
+    output_file: str,
+    from_pandas_kwargs={},
+    write_table_kwargs={},
+    arrow_schema: pa.lib.Schema = None,
 ):
     """
     Export a data frame as parquet
-    Does no conversion, and adheres to the provided schema
+    Does no conversion, and adheres to the parquet schema
 
     Args:
         df (pd.DataFrame): a pandas dataframe
-        output_file (IO or str): the path you want to export to
+        output_file str: the path you want to export to (s3)
     """
-    if not isinstance(arrow_schema, pa.lib.schema):
-        raise TypeError(
-            f"arrow schema must be pyarrow schema, found {type(arrow_schema)}"
-        )
-    table = pa.Table.from_pandas(df)
-    table = table.cast(arrow_schema)
 
-    if isinstance(output_file, str):
-        s3 = pa.fs.S3FileSystem(region='eu-west-1')
-        with s3.open_output_stream(output_file.replace("s3://","")) as f:
-            pa.parquet.write_table(table, f)
-    elif isinstance(output_file, IO):
-        pa.parquet.write_table(table, output_file)
-    else:
-        raise TypeError(f"output file must be IO or str, found {type(output_file)}")
+    if not isinstance(output_file, str):
+        raise TypeError("currently only supports string paths for output")
+
+    table = pa.Table.from_pandas(df, **from_pandas_kwargs)
+    if arrow_schema:
+        table = table.cast(arrow_schema)
+
+    # there was some date converting here, but I think parquet is ok as is
+    # ... I think ...
+
+    pa.parquet.write_table(table, output_file, **write_table_kwargs)

@@ -1,5 +1,5 @@
 import pyarrow as pa
-from pyarrow import csv, json
+from pyarrow import csv, json, parquet
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
 
@@ -222,6 +222,48 @@ def pa_read_json_to_pandas(
         Pandas DataFrame: the jsonl data as a dataframe, with the specified data types
     """
     arrow_table = pa_read_json(input_file, schema, expect_full_schema, **kwargs)
+
+    df = arrow_to_pandas(
+        arrow_table,
+        pd_boolean=pd_boolean,
+        pd_integer=pd_integer,
+        pd_string=pd_string,
+        pd_date_type=pd_date_type,
+        pd_timestamp_type=pd_timestamp_type,
+    )
+
+    return df
+
+def pa_read_parquet(
+    input_file: Union[IO, str],
+    schema: pa.Schema = None,
+    expect_full_schema: bool = True,
+    **kwargs
+):
+
+    pa_parquet_table = parquet.read_table(input_file, **kwargs)
+
+    if schema:
+        pa_parquet_table = cast_arrow_table_to_schema(
+            pa_parquet_table, schema=schema, expect_full_schema=expect_full_schema
+        )
+
+    return pa_parquet_table
+
+
+def pa_read_parquet_to_pandas(
+    input_file: Union[IO, str],
+    schema: pa.Schema = None,
+    expect_full_schema: bool = True,
+    pd_boolean: bool = True,
+    pd_integer: bool = True,
+    pd_string: bool = True,
+    pd_date_type: str = "datetime_object",
+    pd_timestamp_type: str = "datetime_object",
+    **kwargs
+):
+
+    arrow_table = pa_read_parquet(input_file, schema, expect_full_schema, **kwargs)
 
     df = arrow_to_pandas(
         arrow_table,
