@@ -234,6 +234,7 @@ def pa_read_json_to_pandas(
 
     return df
 
+
 def pa_read_parquet(
     input_file: Union[IO, str],
     schema: pa.Schema = None,
