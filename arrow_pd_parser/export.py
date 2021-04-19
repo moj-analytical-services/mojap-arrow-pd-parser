@@ -75,7 +75,7 @@ def pd_to_json(
 
 def pd_to_parquet(
     df: pd.DataFrame,
-    output_file: str,
+    output_file: Union[str, pa.lib.NativeFile],
     from_pandas_kwargs={},
     write_table_kwargs={},
     arrow_schema: pa.lib.Schema = None,
@@ -89,8 +89,8 @@ def pd_to_parquet(
         output_file str: the path you want to export to (s3)
     """
 
-    if not isinstance(output_file, str):
-        raise TypeError("currently only supports string paths for output")
+    if type(output_file) != str and type(output_file) != pa.lib.NativeFile:
+        raise TypeError(f"unsupported output type: {type(output_file)}")
 
     table = pa.Table.from_pandas(df, **from_pandas_kwargs, schema=arrow_schema)
 

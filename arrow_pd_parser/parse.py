@@ -236,11 +236,14 @@ def pa_read_json_to_pandas(
 
 
 def pa_read_parquet(
-    input_file: Union[IO, str],
+    input_file: str,
     schema: pa.Schema = None,
     expect_full_schema: bool = True,
     **kwargs
 ):
+
+    if not isinstance(input_file, str):
+        raise TypeError("currently only supports string paths for input")
 
     pa_parquet_table = parquet.read_table(input_file, **kwargs)
 
@@ -253,7 +256,7 @@ def pa_read_parquet(
 
 
 def pa_read_parquet_to_pandas(
-    input_file: Union[IO, str],
+    input_file: str,
     schema: pa.Schema = None,
     expect_full_schema: bool = True,
     pd_boolean: bool = True,
@@ -263,6 +266,9 @@ def pa_read_parquet_to_pandas(
     pd_timestamp_type: str = "datetime_object",
     **kwargs
 ):
+
+    if not isinstance(input_file, str):
+        raise TypeError("currently only supports string paths for input")
 
     arrow_table = pa_read_parquet(input_file, schema, expect_full_schema, **kwargs)
 
