@@ -92,9 +92,7 @@ def pd_to_parquet(
     if not isinstance(output_file, str):
         raise TypeError("currently only supports string paths for output")
 
-    table = pa.Table.from_pandas(df, **from_pandas_kwargs)
-    if arrow_schema:
-        table = table.cast(arrow_schema)
+    table = pa.Table.from_pandas(df, **from_pandas_kwargs, schema=arrow_schema)
 
     # there was some date converting here, but I think parquet is ok as is
     # ... I think ...
