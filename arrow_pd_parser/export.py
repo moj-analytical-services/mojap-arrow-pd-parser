@@ -2,6 +2,7 @@ import datetime
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import warnings
 
 from typing import Union, IO
 
@@ -86,8 +87,19 @@ def pd_to_parquet(
 
     Args:
         df (pd.DataFrame): a pandas dataframe
-        output_file str: the path you want to export to (s3)
+        output_file (str): the path you want to export to (s3)
+        from_pandas_kwargs (optional, dict): kwargs to pass to pyarrow.Table.from_pandas
+        write_table_kwargs (optional, dicr): 
+            kwargs to pass to pyarrow.parquet.write_table
+        arrow_schema (optional, pyarrow.lib.schema): schema to cast the dataframe to
+            during conversion
     """
+
+    if from_pandas_kwargs.get("schema") and arrow_schema is not None:
+        warnings.warn(
+            "schema specified twice, dropping schema specified in from_pandas_kwargs"
+            )
+        from_pandas_kwargs.pop("schema")
 
     if type(output_file) != str and type(output_file) != pa.lib.NativeFile:
         raise TypeError(f"unsupported output type: {type(output_file)}")

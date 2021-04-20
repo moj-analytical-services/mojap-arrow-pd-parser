@@ -242,6 +242,19 @@ def pa_read_parquet(
     **kwargs
 ):
 
+    """
+    reads parquet file to in memory arrow table
+
+    Args:
+        input_file (str): path (s3 or local) to the parquet file to read in
+        schema (pa.Schema, optional): schema to cast the data to. Defaults to None.
+        expect_full_schema (bool, optional): expect full schema. Defaults to True.
+        kwargs (optional): kwargs to pass to pyarrow.parquet.read_table
+
+    Returns:
+        pyarrow table: data in an in memory arrow table
+    """
+
     if not isinstance(input_file, str):
         raise TypeError("currently only supports string paths for input")
 
@@ -266,6 +279,23 @@ def pa_read_parquet_to_pandas(
     pd_timestamp_type: str = "datetime_object",
     **kwargs
 ):
+    """
+    reads a parquet file to pandas dataframe with various type casting options
+
+    Args:
+        input_file (str): path (s3 or local) to the parquet file to read in
+        schema (pa.Schema, optional): schema to cast the data to. Defaults to None.
+        expect_full_schema (bool, optional): expect full schema. Defaults to True.
+        pd_boolean (bool, optional): [description]. Defaults to True.
+        pd_integer (bool, optional): [description]. Defaults to True.
+        pd_string (bool, optional): [description]. Defaults to True.
+        pd_date_type (str, optional): [description]. Defaults to "datetime_object".
+        pd_timestamp_type (str, optional): [description]. Defaults to "datetime_object".
+        kwargs (optional) : kwargs to pass to pyarrow.parquet.read_table 
+
+    Returns:
+        pandas dataframe: pandas dataframe of the given input data
+    """
 
     if not isinstance(input_file, str):
         raise TypeError("currently only supports string paths for input")
