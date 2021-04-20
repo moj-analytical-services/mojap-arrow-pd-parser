@@ -291,7 +291,7 @@ def pa_read_parquet_to_pandas(
         pd_string (bool, optional): [description]. Defaults to True.
         pd_date_type (str, optional): [description]. Defaults to "datetime_object".
         pd_timestamp_type (str, optional): [description]. Defaults to "datetime_object".
-        kwargs (optional) : kwargs to pass to pyarrow.parquet.read_table 
+        kwargs (optional) : kwargs to pass to pyarrow.parquet.read_table
 
     Returns:
         pandas dataframe: pandas dataframe of the given input data
