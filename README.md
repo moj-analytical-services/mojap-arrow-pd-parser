@@ -1,8 +1,10 @@
 # mojap-arrow-pd-parser
 
-Using pyArrow to read CSV, JSONL and Parquet ensuring that you get the best representation of the column types in the resulting Pandas dataframe. Also ensures data type conformance by maintaining column types when reading and writing data back into Pandas (even when round tripping across multiple data types).
+Using pyArrow/Pandas to read CSV, JSONL and Parquet ensuring that you get the best representation of the column types in the resulting Pandas dataframe. Also ensures data type conformance by maintaining column types when reading and writing data back into Pandas (even when round tripping across multiple data types).
 
-This package also can read in data given a pyArrow schema again to result in a Pandas dataframe that best represents the provided schema. Datatypes are returned as well as pandas writes to the these files correctly for 
+This package also can read in data given a pyArrow schema or [MoJ-Metadata](https://github.com/moj-analytical-services/mojap-metadata) schema again to result in a Pandas dataframe that best represents the provided schema.
+
+Can also be used to write data back to supported formats using Pandas (for CSV/JSONL) and Pyarrow (for Parquet).
 
 ## Installation
 
@@ -18,13 +20,14 @@ pip install arrow-pd-parser @ git+https://github.com/moj-analytical-services/moj
 
 ## Usage
 
-This package uses `pyArrow` to parse CSVs, JSONL and Parquet files and convert them to a Pandas Dataframe that are the best representation of those datatypes and ensure conformance between them.
+This package uses `pyArrow` and/or Pandas to parse CSVs, JSONL and Parquet files and convert them to a Pandas Dataframe that are the best representation of those datatypes and ensure conformance between them. Also can write data back into the above formats to still maintain conformance to the provided schema.
 
 ```python
-from arrow_pd_parser.parse import pa_read_csv_to_pandas
+from arrow_pd_parser.parser import arrow_parser
+from arrow_pd_parser.pandas import pd_parser
 
-df = pa_read_csv_to_pandas("tests/data/all_types.csv")
-df.dtypes()
+df1 = arrow_parser.read_csv_to_pandas("tests/data/all_types.csv")
+df1.dtypes()
 
 # i                     Int64
 # my_bool             boolean
@@ -33,9 +36,21 @@ df.dtypes()
 # my_datetime          object
 # my_int                Int64
 # my_string            string
+
+df2 = pd_parser.read_csv_to_pandas("tests/data/all_types.csv")
+df2.dtypes() == df1.dtypes()  # True
 ```
 
 Note that the default behavior of this package is to utilse the new pandas datatypes for Integers, Booleans and Strings that represent Nulls as `pd.NA()`. Dates are returned as nullable objects of `datetime.date()` type and timestamps are `datetime.datetime()`. By default we enforce these types instead of the native pandas timestamp as the indexing for the Pandas timestamp is nanoseconds and can cause dates to be out of bounds. See the [timestamps](#timestamps) section for more details.
+
+If unsure on what parser to use we would suggest:
+
+| Data Type | Parser |
+|-----------|--------|
+| CSV       | Pandas |
+| JSONL     | Pandas |
+| Parquet   | Arrow  |
+
 
 ### Advanced Usage
 
