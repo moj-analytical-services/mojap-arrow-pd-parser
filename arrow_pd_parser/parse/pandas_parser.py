@@ -128,7 +128,7 @@ def convert_to_float_series(
     """
     s = pd.to_numeric(s, errors=num_errors)
     # in case pandas converts to int rather than float
-    s = s.astype(np.float)
+    s = s.astype(np.float64)
     return s
 
 
@@ -287,9 +287,17 @@ def cast_pandas_table_to_schema(
     if isinstance(metadata, Metadata):
         meta = metadata.to_dict()
     elif isinstance(metadata, dict):
+        if "columns" not in metadata:
+            raise KeyError('metadata missing a "columns" key')
+
         _ = Metadata.from_dict(metadata)  # Check metadata is valid
         meta = deepcopy(metadata)
-
+    else:
+        error_msg = (
+            "Input metadata must be of type Metadata "
+            f"or dict got {type(metadata)}"
+        )
+        raise ValueError(error_msg)
     df = df.copy()
 
     all_exclude_cols = ignore_columns + drop_columns
