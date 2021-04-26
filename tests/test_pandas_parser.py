@@ -5,18 +5,13 @@ import pyarrow as pa
 import pandas as pd
 import numpy as np
 from pandas.testing import assert_frame_equal, assert_series_equal
-from arrow_pd_parser.parse import (
-    pd_read_csv,
-    cast_pandas_table_to_schema
-)
-from arrow_pd_parser.parse.pandas_parser import (
-    _infer_bool_type,
-    convert_to_bool_series
-)
+from arrow_pd_parser.parse import pd_read_csv, cast_pandas_table_to_schema
+from arrow_pd_parser.parse.pandas_parser import _infer_bool_type, convert_to_bool_series
 
 from jsonschema.exceptions import ValidationError
 
 from mojap_metadata import Metadata
+
 
 def test_file_reader_returns_df():
     csv_meta = {
@@ -73,7 +68,11 @@ def test_basic_end_to_end():
             {"name": "my_bool", "type": "bool_", "type_category": "boolean"},
             {"name": "my_nullable_bool", "type": "bool_", "type_category": "boolean"},
             {"name": "my_date", "type": "date32", "type_category": "timestamp"},
-            {"name": "my_datetime", "type": "timestamp(s)", "type_category": "timestamp"},
+            {
+                "name": "my_datetime",
+                "type": "timestamp(s)",
+                "type_category": "timestamp",
+            },
             {"name": "my_int", "type": "int64", "type_category": "integer"},
             {"name": "my_string", "type": "string", "type_category": "string"},
         ]
@@ -107,22 +106,30 @@ def test_basic_end_to_end():
 @pytest.mark.parametrize(
     "s,expected_category,bool_map",
     [
-        (pd.Series([True, False, True], dtype = bool), "bool", None),
-        (pd.Series([True, False, None], dtype = object), "bool_object", None),
-        (pd.Series([True, False, pd.NA], dtype = pd.BooleanDtype()), "boolean", None),
-        (pd.Series(["True", "False", np.nan], dtype = str),  "str_object", None),
-        (pd.Series(["True", "False", None], dtype = pd.StringDtype()),  "str_object", None),
-        (pd.Series(["T", "F", np.nan], dtype = str),  "str_object", None),
-        (pd.Series(["1.0", "0.0", np.nan], dtype = str),  "str_object", None),
-        (pd.Series(["Yes", "No", np.nan], dtype = str),  "str_object", {"Yes": True, "No": False}),
-    ]
+        (pd.Series([True, False, True], dtype=bool), "bool", None),
+        (pd.Series([True, False, None], dtype=object), "bool_object", None),
+        (pd.Series([True, False, pd.NA], dtype=pd.BooleanDtype()), "boolean", None),
+        (pd.Series(["True", "False", np.nan], dtype=str), "str_object", None),
+        (
+            pd.Series(["True", "False", None], dtype=pd.StringDtype()),
+            "str_object",
+            None,
+        ),
+        (pd.Series(["T", "F", np.nan], dtype=str), "str_object", None),
+        (pd.Series(["1.0", "0.0", np.nan], dtype=str), "str_object", None),
+        (
+            pd.Series(["Yes", "No", np.nan], dtype=str),
+            "str_object",
+            {"Yes": True, "No": False},
+        ),
+    ],
 )
 def test_boolean_conversion(s, expected_category, bool_map):
     assert _infer_bool_type(s) == expected_category
-    
+
     if expected_category == "bool":
-        expected = pd.Series([True, False, True], dtype = pd.BooleanDtype())
+        expected = pd.Series([True, False, True], dtype=pd.BooleanDtype())
     else:
-        expected = pd.Series([True, False, pd.NA], dtype = pd.BooleanDtype())
+        expected = pd.Series([True, False, pd.NA], dtype=pd.BooleanDtype())
     actual = convert_to_bool_series(s, True, bool_map=bool_map)
     assert_series_equal(expected, actual)

@@ -86,11 +86,7 @@ def test_datetime(in_type, pd_timestamp_type, out_type):
 
 @pytest.mark.parametrize(
     "pd_timestamp_type,expect_error",
-    [
-        ("datetime_object", False),
-        ("pd_timestamp", True),
-        ("pd_period", False),
-    ],
+    [("datetime_object", False), ("pd_timestamp", True), ("pd_period", False),],
 )
 def test_out_of_bounds_datetime(pd_timestamp_type, expect_error):
 

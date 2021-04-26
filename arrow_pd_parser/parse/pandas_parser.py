@@ -44,21 +44,15 @@ def _get_list():
 
 
 def _convert_str_to_ns_timestamp_series(
-    s: pd.Series,
-    str_datetime_format=None,
+    s: pd.Series, str_datetime_format=None,
 ) -> pd.Series:
-    s = pd.to_datetime(
-        s,
-        format=str_datetime_format,
-    )
-    
+    s = pd.to_datetime(s, format=str_datetime_format,)
+
     return s
 
 
 def _convert_str_to_datetime_obj_series(
-    s: pd.Series,
-    is_date,
-    str_datetime_format=None,
+    s: pd.Series, is_date, str_datetime_format=None,
 ) -> pd.Series:
 
     if str_datetime_format is None:
@@ -106,9 +100,7 @@ def _infer_bool_type(s: pd.Series):
 
 # Define functions that convert str series to their specific type
 def convert_to_integer_series(
-    s: pd.Series,
-    pd_integer: bool,
-    num_errors: str
+    s: pd.Series, pd_integer: bool, num_errors: str
 ) -> pd.Series:
     """
     Reads a pandas Series (str/string dtype) and casts to a integer
@@ -119,10 +111,7 @@ def convert_to_integer_series(
     return s
 
 
-def convert_to_float_series(
-    s: pd.Series,
-    num_errors: str
-) -> pd.Series:
+def convert_to_float_series(s: pd.Series, num_errors: str) -> pd.Series:
     """
     Reads a pandas Series (str/string / numeric dtype) and casts to a float
     """
@@ -132,11 +121,7 @@ def convert_to_float_series(
     return s
 
 
-def convert_to_bool_series(
-    s: pd.Series,
-    pd_boolean,
-    bool_map = None,
-) -> pd.Series:
+def convert_to_bool_series(s: pd.Series, pd_boolean, bool_map=None,) -> pd.Series:
     """
     Reads a pandas Series and casts to a bool. If type is already boolean like
     i.e. an object of bools and nulls, bool dtype or boolean dtype then conversion
@@ -148,7 +133,7 @@ def convert_to_bool_series(
       pd.Series: Column casted to boolean type
     """
     if not pd_boolean:
-        raise NotImplementedError("Casting to old bool type is not yet implemented") 
+        raise NotImplementedError("Casting to old bool type is not yet implemented")
 
     t = _infer_bool_type(s)
     if t == "str_object":
@@ -179,17 +164,16 @@ def convert_to_string_series(s: pd.Series, pd_string: bool) -> pd.Series:
 
 
 def convert_str_to_timestamp_series(
-    s: pd.Series,
-    is_date,
-    pd_type,
-    str_datetime_format=None
+    s: pd.Series, is_date, pd_type, str_datetime_format=None
 ) -> pd.Series:
     if pd_type == "pd_timestamp":
         s = _convert_str_to_ns_timestamp_series(s, str_datetime_format)
     elif pd_type == "datetime_object":
         s = _convert_str_to_datetime_obj_series(s, is_date, str_datetime_format)
     elif pd_type == "pd_period":
-        raise NotImplementedError("Conversion to period is not available yet for this caster")
+        raise NotImplementedError(
+            "Conversion to period is not available yet for this caster"
+        )
     else:
         raise ValueError(
             "Incorrect pd_type, expecting `datetime_object`, `pd_timestamp` or `pd_period`."
@@ -294,8 +278,7 @@ def cast_pandas_table_to_schema(
         meta = deepcopy(metadata)
     else:
         error_msg = (
-            "Input metadata must be of type Metadata "
-            f"or dict got {type(metadata)}"
+            "Input metadata must be of type Metadata " f"or dict got {type(metadata)}"
         )
         raise ValueError(error_msg)
     df = df.copy()
@@ -306,7 +289,7 @@ def cast_pandas_table_to_schema(
     ]
 
     for c in meta_cols_to_convert:
-    # Null first if applicable
+        # Null first if applicable
         if c["name"] not in df.columns:
             raise ValueError(f"Column '{c['name']}' not in df")
 
@@ -328,6 +311,7 @@ def cast_pandas_table_to_schema(
 
     return df
 
+
 def pd_read_csv(
     input_file: Union[IO, str],
     metadata: Union[Metadata, dict],
@@ -339,8 +323,8 @@ def pd_read_csv(
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
     bool_map=None,
-    **kwargs
-    ) -> pd.DataFrame:
+    **kwargs,
+) -> pd.DataFrame:
     """Read a csv file into a Pandas dataframe casting cols based on Metadata.
 
     Args:
