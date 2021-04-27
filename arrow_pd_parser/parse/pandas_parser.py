@@ -18,30 +18,6 @@ _allowed_type_categories = [
     "list",
 ]
 
-# Define some Null getter functions
-def _get_pd_na():
-    return pd.NA
-
-
-def _get_np_nan():
-    return np.nan
-
-
-def _get_pd_nat():
-    return pd.NaT
-
-
-def _get_none():
-    return None
-
-
-def _get_dict():
-    return {}
-
-
-def _get_list():
-    return []
-
 
 def _convert_str_to_ns_timestamp_series(
     s: pd.Series, str_datetime_format=None,
