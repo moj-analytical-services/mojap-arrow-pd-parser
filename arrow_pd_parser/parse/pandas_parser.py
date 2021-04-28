@@ -1,10 +1,12 @@
 from typing import List, Union, Any, IO, Callable
 from copy import deepcopy
+import warnings
 
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_numeric_dtype
 
 from mojap_metadata import Metadata
 
@@ -65,12 +67,19 @@ def _default_str_bool_mapper(s: str):
 
 
 def _infer_bool_type(s: pd.Series):
+
     t = str(s.dtype)
-    if not t in ["bool", "boolean"]:
+    if t in ["bool", "boolean"]:
+        pass
+    elif is_numeric_dtype(s):
+        t = "numeric"
+    else:
+        # determine t
         if np.all(s.apply(lambda x: isinstance(x, bool) or pd.isna(x))):
             t = "bool_object"
         else:
             t = "str_object"
+
     return t
 
 
@@ -112,7 +121,11 @@ def convert_to_bool_series(s: pd.Series, pd_boolean, bool_map=None,) -> pd.Serie
         raise NotImplementedError("Casting to old bool type is not yet implemented")
 
     t = _infer_bool_type(s)
-    if t == "str_object":
+
+    if t == "numeric":
+        s = s.astype(str)
+
+    if t in ["str_object", "numeric"]:
         if bool_map is None:
             s = s.map(_default_str_bool_mapper)
         else:
@@ -334,6 +347,72 @@ def pd_read_csv(
         kwargs["dtype"] = str
 
     df = pd.read_csv(input_file, **kwargs)
+    df = cast_pandas_table_to_schema(
+        df=df,
+        metadata=metadata,
+        ignore_columns=ignore_columns,
+        drop_columns=drop_columns,
+        pd_integer=pd_integer,
+        pd_string=pd_string,
+        pd_boolean=pd_boolean,
+        pd_date_type=pd_date_type,
+        pd_timestamp_type=pd_timestamp_type,
+        bool_map=bool_map,
+    )
+
+    return df
+
+
+def pd_read_json(
+    input_file: Union[IO, str],
+    metadata: Union[Metadata, dict],
+    ignore_columns: List = None,
+    drop_columns: List = None,
+    pd_integer: bool = True,
+    pd_string: bool = True,
+    pd_boolean: bool = True,
+    pd_date_type: str = "datetime_object",
+    pd_timestamp_type: str = "datetime_object",
+    bool_map=None,
+    **kwargs,
+) -> pd.DataFrame:
+    """Read a csv file into a Pandas dataframe casting cols based on Metadata.
+
+    Args:
+        input_file (Union[IO, str]): the CSV you want to read. string, path or
+            file-like object.
+        metadata Union[Metadata, dict]: what you want the column to be cast to.
+        ignore_columns: (List, optional): a list of column names to not cast to the meta data dictionary.
+            These columns are remained unchanged.
+        drop_columns:  (List, optional): a list of column names you want to drop from the dataframe.
+        pd_boolean: whether to use the new pandas boolean format. Defaults to True.
+            When set to False, uses a custom boolean format to coerce object type.
+        pd_integer: if True, converts integers to Pandas int64 format.
+            If False, uses float64. Defaults to True.
+        pd_string: Defaults to True.
+        pd_date_type (str, optional): specifies the timestamp type. Can be one of:
+            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet implemented).
+        pd_timestamp_type (str, optional): specifies the timestamp type. Can be one of:
+            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet implemented).
+        bool_map (Callable, dict, optional): A custom mapping function that is applied to str
+            cols to be converted to booleans before conversion to boolean type.
+            e.g. {"Yes": True, "No": False}. If not set bool values are inferred by the
+            _default_str_bool_mapper.
+        **kwargs (optional): Additional kwargs are passed to pandas.read_csv. Params orient
+            and lines will be ignored as always set to lines=True and orient="records".
+
+    Returns:
+        Pandas DataFrame: the csv data as a dataframe, with the specified data types
+    """
+
+    if "lines" in kwargs:
+        warnings.warn("Ignoring lines in kwargs. Setting to lines=True.")
+        kwargs.pop("lines")
+    if "orient" in kwargs:
+        warnings.warn('Ignoring orient in kwargs. Setting to orient="records"')
+        kwargs.pop("orient")
+
+    df = pd.read_json(input_file, lines=True, orient="records", **kwargs)
     df = cast_pandas_table_to_schema(
         df=df,
         metadata=metadata,

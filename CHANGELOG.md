@@ -7,9 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## 0.3.0 - 2021-04-26
 
 - Expanded parse module to `arrow_parser` and added a `pandas_parser` module. But import the previous function in the `__init__.py` of parse so that it is backwards compatible with previous releases.
-- `pandas_parser` module added to give users option of arrow reader or pandas (for CSV and JSONL (JSONL not yet implemented but will be added in minor update)).
+- `pandas_parser` module added to give users option of arrow reader or pandas (for CSV and JSONL only).
 - Added some basic tests for the pandas_parser
-
 
 ## 0.2.0 - 2021-03-16
 

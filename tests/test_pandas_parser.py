@@ -1,12 +1,20 @@
 import pytest
-from io import StringIO
 
 import pyarrow as pa
 import pandas as pd
 import numpy as np
 from pandas.testing import assert_frame_equal, assert_series_equal
-from arrow_pd_parser.parse import pd_read_csv, cast_pandas_table_to_schema
-from arrow_pd_parser.parse.pandas_parser import _infer_bool_type, convert_to_bool_series
+from arrow_pd_parser.parse import (
+    pd_read_csv,
+    pd_read_json,
+    cast_pandas_table_to_schema,
+)
+
+from arrow_pd_parser.parse.pandas_parser import (
+    _infer_bool_type,
+    convert_to_bool_series,
+    convert_str_to_timestamp_series,
+)
 
 from jsonschema.exceptions import ValidationError
 
@@ -47,20 +55,10 @@ def test_file_reader_works_with_both_meta_types():
         pd_read_csv("tests/data/example_data.jsonl", metadata=m)
 
 
-def test_basic_end_to_end():
-    data = """
-    i,my_float,my_bool,my_nullable_bool,my_date,my_datetime,my_int,my_string
-    0,124.1252513,True,True,2013-06-13,2013-06-13 05:11:07,,bhaskjfhsaf
-    1,124.1252513,True,True,1995-04-30,1995-04-30 10:23:29,16,💩
-    2,0.1252513,False,False,2017-10-15,2017-10-15 20:25:05,16,"dsfasd,dsffadsf"
-    3,0.1252513,True,True,1991-12-27,1991-12-27 06:57:23,17,csjasof fweh lkia hfeaofh
-    4,0.1252513,True,,1980-03-28,1980-03-28 07:31:18,18,aflhnas flk; h
-    5,125195315,True,True,1984-04-21,1984-04-21 18:36:57,,NULL
-    6,125195315.0,True,True,,1992-11-08 17:18:12,13,hjsaldfh
-    7,1.000001,False,False,1972-10-21,,11,None
-    8,,True,True,1973-05-18,1973-05-18 07:35:46,10,null
-    9,1.000,True,True,1991-03-13,1991-03-13 15:48:11,11,
-    """
+@pytest.mark.parametrize("data_format", ["jsonl", "csv"])
+def test_basic_end_to_end(data_format):
+
+    test_data_path = f"tests/data/all_types.{data_format}"
 
     meta = {
         "columns": [
@@ -78,7 +76,11 @@ def test_basic_end_to_end():
         ]
     }
 
-    df = pd.read_csv(StringIO(data), dtype="string", low_memory=False)
+    if data_format == "jsonl":
+        df = pd.read_json(test_data_path, lines=True)
+    else:
+        df = pd.read_csv(test_data_path, dtype="string", low_memory=False)
+
     dfn = cast_pandas_table_to_schema(df, meta)
 
     expected_dtypes = {
@@ -96,8 +98,12 @@ def test_basic_end_to_end():
         actual_dtypes[c] = str(dfn[c].dtype)
     assert actual_dtypes == expected_dtypes
 
-    df2 = pd_read_csv(StringIO(data), meta)
-    df3 = pd_read_csv(StringIO(data), meta, dtype=str, low_memory=False)
+    if data_format == "jsonl":
+        df2 = pd_read_json(test_data_path, meta)
+        df3 = pd_read_json(test_data_path, meta, orient="records", lines=True)
+    else:
+        df2 = pd_read_csv(test_data_path, meta)
+        df3 = pd_read_csv(test_data_path, meta, dtype=str, low_memory=False)
 
     assert_frame_equal(dfn, df2)
     assert_frame_equal(df2, df3)
@@ -122,14 +128,48 @@ def test_basic_end_to_end():
             "str_object",
             {"Yes": True, "No": False},
         ),
+        (pd.Series([1, 0, 1], dtype=int), "numeric", None),
+        (pd.Series([1, 0, np.nan], dtype=float), "numeric", None),
+        (pd.Series([1.0, 0.0, np.nan], dtype=float), "numeric", None),
     ],
 )
 def test_boolean_conversion(s, expected_category, bool_map):
     assert _infer_bool_type(s) == expected_category
 
-    if expected_category == "bool":
-        expected = pd.Series([True, False, True], dtype=pd.BooleanDtype())
-    else:
+    if pd.isna(s[2]):
         expected = pd.Series([True, False, pd.NA], dtype=pd.BooleanDtype())
+    else:
+        expected = pd.Series([True, False, True], dtype=pd.BooleanDtype())
     actual = convert_to_bool_series(s, True, bool_map=bool_map)
     assert_series_equal(expected, actual)
+
+
+@pytest.mark.parametrize(
+    "s,dt_fmt,is_date",
+    [
+        (pd.Series(["1970-01-01", "2021-12-31", None], dtype=str), None, True),
+        (pd.Series(["1970-01-01", "2021-12-31", None], dtype=str), "%Y-%m-%d", True),
+        (pd.Series(["01-Jan-70", "31-Dec-21", None], dtype=str), "%d-%b-%y", True),
+        (pd.Series(["01-Jan-70", "31-Dec-21", None], dtype=str), "%d-%b-%y", False),
+        (
+            pd.Series(["1970-01-01 00:00:00", "2021-12-31 23:59:59", None], dtype=str),
+            None,
+            False,
+        ),
+        (
+            pd.Series(["1970-01-01 00:00:00", "2021-12-31 23:59:59", None], dtype=str),
+            "%Y-%m-%d %H:%M:%S",
+            False,
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "pd_date_type", ["datetime_object", "pd_timestamp", "pd_period"]
+)
+def test_timestamp_conversion(s, dt_fmt, is_date, pd_date_type):
+    if pd_date_type == "pd_period":
+        with pytest.raises(NotImplementedError):
+            s_ = convert_str_to_timestamp_series(s, is_date, pd_date_type, dt_fmt)
+    else:
+        s_ = convert_str_to_timestamp_series(s, is_date, pd_date_type, dt_fmt)
+        assert_series_equal(pd.to_datetime(s, format=dt_fmt), pd.to_datetime(s_))
