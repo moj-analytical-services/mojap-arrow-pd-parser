@@ -5,6 +5,8 @@ from .arrow_parser import (
     pa_read_csv_to_pandas,
     pa_read_json,
     pa_read_json_to_pandas,
+    pa_read_parquet_to_pandas,
+    pa_read_parquet,
 )
 
 from .pandas_parser import (

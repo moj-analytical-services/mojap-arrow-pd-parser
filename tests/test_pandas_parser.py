@@ -102,7 +102,8 @@ def test_basic_end_to_end(data_format):
 
     if data_format == "jsonl":
         df2 = pd_read_json(test_data_path, meta)
-        df3 = pd_read_json(test_data_path, meta, orient="records", lines=True)
+        with pytest.warns(UserWarning):
+            df3 = pd_read_json(test_data_path, meta, orient="records", lines=True)
     else:
         df2 = pd_read_csv(test_data_path, meta)
         df3 = pd_read_csv(test_data_path, meta, dtype=str, low_memory=False)
