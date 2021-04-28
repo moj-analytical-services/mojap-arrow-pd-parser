@@ -84,14 +84,9 @@ def test_datetime(in_type, pd_timestamp_type, out_type):
     assert test_str_dates == actual_str_dates
 
 
-
 @pytest.mark.parametrize(
     "pd_timestamp_type,expect_error",
-    [
-        ("datetime_object", False),
-        ("pd_timestamp", True),
-        ("pd_period", False),
-    ],
+    [("datetime_object", False), ("pd_timestamp", True), ("pd_period", False)],
 )
 def test_out_of_bounds_datetime(pd_timestamp_type, expect_error):
 
@@ -116,7 +111,7 @@ def test_out_of_bounds_datetime(pd_timestamp_type, expect_error):
             expect_full_schema=False,
             pd_timestamp_type=pd_timestamp_type,
         )
-    except pa.lib.ArrowInvalid as e:  # pa.lib.ArrowInvalid
+    except pa.lib.ArrowInvalid:
         assert expect_error is True
     else:
         df = pa_read_csv_to_pandas(

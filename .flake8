@@ -17,4 +17,7 @@ exclude =
 	__pycache__,
 	.tox,
 	venv/,
+	env/,
 	.github
+	__init__.py
+
