@@ -1,5 +1,8 @@
 import pytest
 
+from io import StringIO
+from datetime import datetime
+
 import pandas as pd
 import numpy as np
 from pandas.testing import assert_frame_equal, assert_series_equal
@@ -172,3 +175,34 @@ def test_timestamp_conversion(s, dt_fmt, is_date, pd_date_type):
     else:
         s_ = convert_str_to_timestamp_series(s, is_date, pd_date_type, dt_fmt)
         assert_series_equal(pd.to_datetime(s, format=dt_fmt), pd.to_datetime(s_))
+
+
+@pytest.mark.parametrize(
+    "col_type",
+    ["date64", "date32", "timestamp(s)"]
+)
+def test_timestamp_conversion_in_df(col_type):
+    meta = {
+        "name": "test",
+        "columns": [
+            {"name": "datelong", "datetime_format": "%d-%b-%Y"},
+            {"name": "dateshort", "datetime_format": "%d-%b-%y"},
+            {"name": "date_uk", "datetime_format": "%d/%m/%Y"}
+        ]
+    }
+    for c in meta["columns"]:
+        c["type"] = col_type
+        c["type_category"] = "timestamp"
+
+    data = (
+        "datelong,dateshort,date_uk\n"
+        "01-JAN-2020,01-JAN-20,01/01/2020\n"
+        "27-MAY-1996,27-MAY-96,27/05/1996\n"
+    )
+    expected_col_values = [datetime(2020, 1, 1), datetime(1996, 5, 27)]
+    if col_type.startswith("date"):
+        expected_col_values = [v.date() for v in expected_col_values]
+
+    df = pd_read_csv(StringIO(data), metadata=meta)
+    for c in df.columns:
+        assert expected_col_values == df[c].to_list()

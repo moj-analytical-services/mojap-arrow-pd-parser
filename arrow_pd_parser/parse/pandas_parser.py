@@ -204,6 +204,7 @@ def cast_pandas_column_to_schema(
                 s,
                 pd_type=pd_date_type if is_date else pd_timestamp_type,
                 is_date=is_date,
+                str_datetime_format=metacol.get("datetime_format"),
             )
         else:
             raise ValueError(
