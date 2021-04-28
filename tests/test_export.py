@@ -15,6 +15,7 @@ schemas = [
     pa.schema(
         [
             ("i", pa.int8()),
+            ("my_float", pa.float64()),
             ("my_bool", pa.bool_()),
             ("my_nullable_bool", pa.bool_()),
             ("my_date", pa.date32()),
@@ -26,6 +27,7 @@ schemas = [
     pa.schema(
         [
             ("i", pa.int16()),
+            ("my_float", pa.float64()),
             ("my_bool", pa.bool_()),
             ("my_nullable_bool", pa.bool_()),
             ("my_date", pa.date32()),
@@ -37,6 +39,7 @@ schemas = [
     pa.schema(
         [
             ("i", pa.int32()),
+            ("my_float", pa.float64()),
             ("my_bool", pa.bool_()),
             ("my_nullable_bool", pa.bool_()),
             ("my_date", pa.date64()),
@@ -48,6 +51,7 @@ schemas = [
     pa.schema(
         [
             ("i", pa.int64()),
+            ("my_float", pa.float64()),
             ("my_bool", pa.bool_()),
             ("my_nullable_bool", pa.bool_()),
             ("my_date", pa.date64()),

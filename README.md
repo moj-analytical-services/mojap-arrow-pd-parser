@@ -1,8 +1,10 @@
 # mojap-arrow-pd-parser
 
-Using pyArrow to read CSV, JSONL and Parquet ensuring that you get the best representation of the column types in the resulting Pandas dataframe. Also ensures data type conformance by maintaining column types when reading and writing data back into Pandas (even when round tripping across multiple data types).
+Using pyArrow/Pandas to read CSV, JSONL and Parquet ensuring that you get the best representation of the column types in the resulting Pandas dataframe. Also ensures data type conformance by maintaining column types when reading and writing data back into Pandas (even when round tripping across multiple data types).
 
-This package also can read in data given a pyArrow schema again to result in a Pandas dataframe that best represents the provided schema. Datatypes are returned as well as pandas writes to the these files correctly for 
+This package also can read in data given a pyArrow schema or [MoJ-Metadata](https://github.com/moj-analytical-services/mojap-metadata) schema again to result in a Pandas dataframe that best represents the provided schema.
+
+Can also be used to write data back to supported formats using Pandas (for CSV/JSONL) and Pyarrow (for Parquet).
 
 ## Installation
 
@@ -18,13 +20,18 @@ pip install arrow-pd-parser @ git+https://github.com/moj-analytical-services/moj
 
 ## Usage
 
-This package uses `pyArrow` to parse CSVs, JSONL and Parquet files and convert them to a Pandas Dataframe that are the best representation of those datatypes and ensure conformance between them.
+This package uses `pyArrow` and/or Pandas to parse CSVs, JSONL and Parquet files and convert them to a Pandas Dataframe that are the best representation of those datatypes and ensure conformance between them. Also can write data back into the above formats to still maintain conformance to the provided schema.
 
 ```python
-from arrow_pd_parser.parse import pa_read_csv_to_pandas
+from arrow_pd_parser.parse import (
+    pa_read_csv_to_pandas,
+    pd_read_csv,
+)
 
-df = pa_read_csv_to_pandas("tests/data/all_types.csv")
-df.dtypes()
+from arrow_pd_parser.pandas import pd_parser
+
+df1 = pa_read_csv_to_pandas("tests/data/all_types.csv")
+df1.dtypes()
 
 # i                     Int64
 # my_bool             boolean
@@ -33,9 +40,21 @@ df.dtypes()
 # my_datetime          object
 # my_int                Int64
 # my_string            string
+
+df2 = pd_read_csv("tests/data/all_types.csv")
+df2.dtypes() == df1.dtypes()  # True
 ```
 
 Note that the default behavior of this package is to utilse the new pandas datatypes for Integers, Booleans and Strings that represent Nulls as `pd.NA()`. Dates are returned as nullable objects of `datetime.date()` type and timestamps are `datetime.datetime()`. By default we enforce these types instead of the native pandas timestamp as the indexing for the Pandas timestamp is nanoseconds and can cause dates to be out of bounds. See the [timestamps](#timestamps) section for more details.
+
+If unsure on what parser to use we would suggest:
+
+| Data Type | Parser |
+|-----------|--------|
+| CSV       | Pandas |
+| JSONL     | Pandas |
+| Parquet   | Arrow  |
+
 
 ### Advanced Usage
 
@@ -44,7 +63,7 @@ This package will read in tabular data using pyarrow and then convert it to a pa
 - Cast the arrow dataset to the specified schema (if provided)
 - Convert the arrow dataset to Pandas
 
-#### Reading and Schema Casting
+#### Reading and Schema Casting (Arrow)
 
 You can split up the previous code example (which used `pa_read_csv_to_pandas`) into two parts to get the exact same result (in case you wanted to do some transformations to the arrow dataset first).
 
@@ -141,6 +160,74 @@ co = csv.ConvertOptions(column_types=schema)
 df = pa_read_csv_to_pandas(test_file, schema=schema, expect_full_schema=False, convert_options=co)
 ```
 
+#### Reading and Schema Casting (Pandas)
+
+In the same way you can seperate the reading and casting in the arrow example above you can do the same for the pandas parser.
+
+```python
+import pandas as pd
+from arrow_pd_parser.parse import (
+    pd_read_csv,
+    cast_pandas_table_to_schema
+)
+
+# Read in the data first then convert it to a pandas dataframe
+
+# pandas parsing/casting only needs type_category except for
+# "timestamp" type_categories where both type and type_categories
+# are required
+meta = {
+    "columns": [
+        {"name": "my_bool", "type_category": "boolean"},
+        {"name": "my_nullable_bool", "type_category": "boolean"},
+        {"name": "my_date", "type": "date32", "type_category": "timestamp"},
+        {"name": "my_datetime", "type": "timestamp(s)", "type_category": "timestamp"},
+        {"name": "my_int", "type_category": "integer"},
+        {"name": "my_string", "type_category": "string"},
+    ]
+}
+
+df_str = pd.read_csv("tests/data/all_types.csv", dtype=str, low_memory=False)  # Best type conversion when reading in types as strings
+df_cast = cast_pandas_table_to_schema(df_str, meta)
+```
+
+The pandas parser functions that require metadata (like `pd_read_csv` and `cast_pandas_table_to_schema`) takes a `dict` that is compliant with a `Metadata` schema or a `Metadata` object. You can use the metadata object to set type_categories based of column types for metadata that only has the latter:
+
+```python
+from io import StringIO
+import pandas as pd
+from arrow_pd_parser.parse import (
+    pd_read_csv,
+)
+
+data = """
+my_nullable_bool,my_date,my_datetime,my_int
+True,True,2013-06-13,2013-06-13 05:11:07,
+True,,1995-04-30,1995-04-30 10:23:29,16
+False,False,2017-10-15,2017-10-15 20:25:05,0
+"""
+
+# Set type categories in metadata object
+meta = {
+    "columns": [
+        {"name": "my_nullable_bool", "type": "bool_"},
+        {"name": "my_date", "type": "date32"},
+        {"name": "my_datetime", "type": "timestamp(s)"},
+        {"name": "my_int", "type": "int64"},
+    ]
+}
+metadata_instance = Metadata.from_dict(meta)
+df = pd_read_csv(StringIO(data), metadata_instance)
+df.dtypes
+# i                     Int64
+# my_nullable_bool    boolean
+# my_date              object
+# my_datetime          object
+# my_int                Int64
+
+```
+
+
 #### Exporting data to CSV/JSON
 
 You can also use the export module of this package to write data back (to CSV and JSON to ensure the same datatype will be read back in). This is useful when having to constantly read/write data between different storage systems and/or pipelines.
@@ -183,9 +270,9 @@ new = pa_read_json_to_pandas(new_f, s)
 original == new # note that the two False values are where datetime is None in both tables
 ```
 
-#### Integration with mojap-metadata
+#### Integration with mojap-metadata (Arrow)
 
-This package can also be used alongside the `mojap-metadata` package. In the example below you will need to install the package with the arrow dependencies:
+The arrow modules can also be used alongside the `mojap-metadata` package which is already installed. In the example below you will need to install the package with the arrow dependencies:
 
 ```
 pip install mojap-metadata[arrow]
