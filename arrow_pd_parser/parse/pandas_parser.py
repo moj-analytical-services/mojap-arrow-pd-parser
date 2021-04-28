@@ -1,4 +1,4 @@
-from typing import List, Union, Any, IO, Callable
+from typing import List, Union, IO, Callable
 from copy import deepcopy
 import warnings
 
@@ -111,7 +111,7 @@ def convert_to_bool_series(s: pd.Series, pd_boolean, bool_map=None,) -> pd.Serie
     Reads a pandas Series and casts to a bool. If type is already boolean like
     i.e. an object of bools and nulls, bool dtype or boolean dtype then conversion
     occurs. Otherwise function expects a str series and will apply mapping to series
-    before casting to Pandas Boolean type. If bool_map if provided this is used for 
+    before casting to Pandas Boolean type. If bool_map if provided this is used for
     mapping otherwise the _default_str_bool_mapper is used
 
     Returns:
@@ -165,8 +165,8 @@ def convert_str_to_timestamp_series(
         )
     else:
         raise ValueError(
-            "Incorrect pd_type, expecting `datetime_object`, `pd_timestamp` or `pd_period`."
-            f" Got {pd_type}"
+            'Incorrect pd_type, expecting "datetime_object"',
+            '"pd_timestamp" or "pd_period".' f" Got {pd_type}.",
         )
 
     return s
@@ -243,8 +243,8 @@ def cast_pandas_table_to_schema(
     ignore_columns: a list of column names to not cast to the meta data dictionary.
         These columns are remained unchanged.
     drop_columns: Removes these columns from the dataframe
-    bool_map (Callable, dict, optional): A custom mapping function that is applied to str
-        cols to be converted to booleans before conversion to boolean type.
+    bool_map (Callable, dict, optional): A custom mapping function that is applied
+        to str cols to be converted to booleans before conversion to boolean type.
         e.g. {"Yes": True, "No": False}. If not set bool values are inferred by the
         _default_str_bool_mapper.
     """
@@ -320,20 +320,23 @@ def pd_read_csv(
         input_file (Union[IO, str]): the CSV you want to read. string, path or
             file-like object.
         metadata Union[Metadata, dict]: what you want the column to be cast to.
-        ignore_columns: (List, optional): a list of column names to not cast to the meta data dictionary.
-            These columns are remained unchanged.
-        drop_columns:  (List, optional): a list of column names you want to drop from the dataframe.
+        ignore_columns: (List, optional): a list of column names to not cast to
+            the meta data dictionary. These columns are remained unchanged.
+        drop_columns:  (List, optional): a list of column names you want to drop
+            from the dataframe.
         pd_boolean: whether to use the new pandas boolean format. Defaults to True.
             When set to False, uses a custom boolean format to coerce object type.
         pd_integer: if True, converts integers to Pandas int64 format.
             If False, uses float64. Defaults to True.
         pd_string: Defaults to True.
         pd_date_type (str, optional): specifies the timestamp type. Can be one of:
-            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet implemented).
+            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet
+            implemented).
         pd_timestamp_type (str, optional): specifies the timestamp type. Can be one of:
-            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet implemented).
-        bool_map (Callable, dict, optional): A custom mapping function that is applied to str
-            cols to be converted to booleans before conversion to boolean type.
+            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet
+            implemented).
+        bool_map (Callable, dict, optional): A custom mapping function that is applied
+            to str cols to be converted to booleans before conversion to boolean type.
             e.g. {"Yes": True, "No": False}. If not set bool values are inferred by the
             _default_str_bool_mapper.
         **kwargs (optional): Additional kwargs are passed to pandas.read_csv
@@ -382,24 +385,28 @@ def pd_read_json(
         input_file (Union[IO, str]): the CSV you want to read. string, path or
             file-like object.
         metadata Union[Metadata, dict]: what you want the column to be cast to.
-        ignore_columns: (List, optional): a list of column names to not cast to the meta data dictionary.
-            These columns are remained unchanged.
-        drop_columns:  (List, optional): a list of column names you want to drop from the dataframe.
+        ignore_columns: (List, optional): a list of column names to not cast to
+            the meta data dictionary. These columns are remained unchanged.
+        drop_columns:  (List, optional): a list of column names you want to drop
+            from the dataframe.
         pd_boolean: whether to use the new pandas boolean format. Defaults to True.
             When set to False, uses a custom boolean format to coerce object type.
         pd_integer: if True, converts integers to Pandas int64 format.
             If False, uses float64. Defaults to True.
         pd_string: Defaults to True.
         pd_date_type (str, optional): specifies the timestamp type. Can be one of:
-            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet implemented).
+            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet
+            implemented).
         pd_timestamp_type (str, optional): specifies the timestamp type. Can be one of:
-            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet implemented).
-        bool_map (Callable, dict, optional): A custom mapping function that is applied to str
-            cols to be converted to booleans before conversion to boolean type.
+            "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet
+            implemented).
+        bool_map (Callable, dict, optional): A custom mapping function that is applied
+            to str cols to be converted to booleans before conversion to boolean type.
             e.g. {"Yes": True, "No": False}. If not set bool values are inferred by the
             _default_str_bool_mapper.
-        **kwargs (optional): Additional kwargs are passed to pandas.read_csv. Params orient
-            and lines will be ignored as always set to lines=True and orient="records".
+        **kwargs (optional): Additional kwargs are passed to pandas.read_csv. Params
+            orient and lines will be ignored as always set to lines=True and
+            orient="records".
 
     Returns:
         Pandas DataFrame: the csv data as a dataframe, with the specified data types
