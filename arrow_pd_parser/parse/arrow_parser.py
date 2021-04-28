@@ -1,5 +1,5 @@
 import pyarrow as pa
-from pyarrow import csv, json
+from pyarrow import csv, json, parquet
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
 
@@ -222,6 +222,85 @@ def pa_read_json_to_pandas(
         Pandas DataFrame: the jsonl data as a dataframe, with the specified data types
     """
     arrow_table = pa_read_json(input_file, schema, expect_full_schema, **kwargs)
+
+    df = arrow_to_pandas(
+        arrow_table,
+        pd_boolean=pd_boolean,
+        pd_integer=pd_integer,
+        pd_string=pd_string,
+        pd_date_type=pd_date_type,
+        pd_timestamp_type=pd_timestamp_type,
+    )
+
+    return df
+
+
+def pa_read_parquet(
+    input_file: str,
+    schema: pa.Schema = None,
+    expect_full_schema: bool = True,
+    **kwargs
+):
+
+    """
+    reads parquet file to in memory arrow table
+
+    Args:
+        input_file (str): path (s3 or local) to the parquet file to read in
+        schema (pa.Schema, optional): schema to cast the data to. Defaults to None.
+        expect_full_schema (bool, optional): expect full schema. Defaults to True.
+        kwargs (optional): kwargs to pass to pyarrow.parquet.read_table
+
+    Returns:
+        pyarrow table: data in an in memory arrow table
+    """
+
+    if not isinstance(input_file, str):
+        raise TypeError("currently only supports string paths for input")
+
+    pa_parquet_table = parquet.read_table(input_file, **kwargs)
+
+    if schema:
+        pa_parquet_table = cast_arrow_table_to_schema(
+            pa_parquet_table, schema=schema, expect_full_schema=expect_full_schema
+        )
+
+    return pa_parquet_table
+
+
+def pa_read_parquet_to_pandas(
+    input_file: str,
+    schema: pa.Schema = None,
+    expect_full_schema: bool = True,
+    pd_boolean: bool = True,
+    pd_integer: bool = True,
+    pd_string: bool = True,
+    pd_date_type: str = "datetime_object",
+    pd_timestamp_type: str = "datetime_object",
+    **kwargs
+):
+    """
+    reads a parquet file to pandas dataframe with various type casting options
+
+    Args:
+        input_file (str): path (s3 or local) to the parquet file to read in
+        schema (pa.Schema, optional): schema to cast the data to. Defaults to None.
+        expect_full_schema (bool, optional): expect full schema. Defaults to True.
+        pd_boolean (bool, optional): [description]. Defaults to True.
+        pd_integer (bool, optional): [description]. Defaults to True.
+        pd_string (bool, optional): [description]. Defaults to True.
+        pd_date_type (str, optional): [description]. Defaults to "datetime_object".
+        pd_timestamp_type (str, optional): [description]. Defaults to "datetime_object".
+        kwargs (optional) : kwargs to pass to pyarrow.parquet.read_table
+
+    Returns:
+        pandas dataframe: pandas dataframe of the given input data
+    """
+
+    if not isinstance(input_file, str):
+        raise TypeError("currently only supports string paths for input")
+
+    arrow_table = pa_read_parquet(input_file, schema, expect_full_schema, **kwargs)
 
     df = arrow_to_pandas(
         arrow_table,
