@@ -21,6 +21,10 @@ _allowed_type_categories = [
 ]
 
 
+class PandasCastError(Exception):
+    pass
+
+
 def _convert_str_to_ns_timestamp_series(
     s: pd.Series, str_datetime_format=None,
 ) -> pd.Series:
@@ -218,7 +222,7 @@ def cast_pandas_column_to_schema(
             f"type_category: {metacol['type_category']} | "
             f"type: {metacol.get('type')} - see traceback."
         )
-        raise Exception(starter_msg).with_traceback(e.__traceback__)
+        raise PandasCastError(starter_msg).with_traceback(e.__traceback__)
 
     return s
 

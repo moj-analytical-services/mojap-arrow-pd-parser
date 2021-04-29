@@ -14,4 +14,5 @@ from .pandas_parser import (
     cast_pandas_column_to_schema,
     pd_read_csv,
     pd_read_json,
+    PandasCastError,
 )

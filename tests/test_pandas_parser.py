@@ -10,6 +10,8 @@ from arrow_pd_parser.parse import (
     pd_read_csv,
     pd_read_json,
     cast_pandas_table_to_schema,
+    cast_pandas_column_to_schema,
+    PandasCastError,
 )
 
 from arrow_pd_parser.parse.pandas_parser import (
@@ -207,3 +209,21 @@ def test_timestamp_conversion_in_df(col_type):
     df = pd_read_csv(StringIO(data), metadata=meta)
     for c in df.columns:
         assert expected_col_values == df[c].to_list()
+
+
+def test_cast_error():
+    col = pd.Series(["1970-01-01", "2021-12-31", None], dtype=str)
+    mc = {
+        "name": "bad_format",
+        "type": "date64()",
+        "type_category": "timestamp",
+        "datetime_format": "%d/%m/%Y %H:%M:%S"
+    }
+    with pytest.raises(PandasCastError) as exec_info:
+        cast_pandas_column_to_schema(col, mc)
+
+    failed_msg = (
+        "Failed conversion - name: bad_format | "
+        "type_category: timestamp | type: date64() - see traceback."
+    )
+    assert str(exec_info.value).startswith(failed_msg)
