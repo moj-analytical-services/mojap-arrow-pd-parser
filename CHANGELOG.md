@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## 0.4.01 - 2021-04-29
+## 0.4.1 - 2021-04-29
+
 - Added new Exception class should make it easier to run try/except as users can catch the new Exception class (`PandasCastError`)
 
 ## 0.4.0 - 2021-04-28
