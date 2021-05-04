@@ -301,7 +301,10 @@ def cast_pandas_table_to_schema(
                 bool_map=bool_map,
             )
 
-    final_cols = [c["name"] for c in meta["columns"] if c["name"] not in drop_columns]
+    final_cols = [
+        c["name"] for c in meta["columns"] if c["name"] not in drop_columns
+        or c["name"] not in meta["partitions"]
+        ]
     df = df[final_cols]
 
     return df
