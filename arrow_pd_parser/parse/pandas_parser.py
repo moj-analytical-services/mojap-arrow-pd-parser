@@ -279,8 +279,8 @@ def cast_pandas_table_to_schema(
 
     all_exclude_cols = ignore_columns + drop_columns
     meta_cols_to_convert = [
-        c for c in meta["columns"] if c["name"] not in all_exclude_cols \
-            or c["name"] not in meta["partitions"]
+        c for c in meta["columns"] if c["name"] not in all_exclude_cols or
+        c["name"] not in meta["partitions"]
     ]
 
     for c in meta_cols_to_convert:
