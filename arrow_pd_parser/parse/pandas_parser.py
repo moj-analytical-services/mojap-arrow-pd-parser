@@ -1,13 +1,12 @@
-from typing import List, Union, IO, Callable
-from copy import deepcopy
 import warnings
-
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
 
+from typing import List, Union, IO, Callable
+from copy import deepcopy
+from datetime import datetime
+from pandas.api.types import is_numeric_dtype
 from mojap_metadata import Metadata
 
 _allowed_type_categories = [
@@ -188,6 +187,7 @@ def cast_pandas_column_to_schema(
     bool_map=None,
 ) -> pd.Series:
 
+    complex_type_categories = ["struct", "list"]
     # Conversions
     try:
         if metacol["type_category"] == "integer":
@@ -209,6 +209,11 @@ def cast_pandas_column_to_schema(
                 pd_type=pd_date_type if is_date else pd_timestamp_type,
                 is_date=is_date,
                 str_datetime_format=metacol.get("datetime_format"),
+            )
+        elif metacol["type_category"] in complex_type_categories:
+            warnings.warn(
+                f"complex types ({complex_type_categories}) are not cast "
+                f"(column: {metacol['name']})"
             )
         else:
             raise ValueError(
