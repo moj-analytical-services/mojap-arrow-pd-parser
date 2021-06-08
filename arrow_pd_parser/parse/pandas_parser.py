@@ -187,6 +187,7 @@ def cast_pandas_column_to_schema(
     bool_map=None,
 ) -> pd.Series:
 
+    complex_type_categories = ["struct", "list"]
     # Conversions
     try:
         if metacol["type_category"] == "integer":
@@ -209,8 +210,11 @@ def cast_pandas_column_to_schema(
                 is_date=is_date,
                 str_datetime_format=metacol.get("datetime_format"),
             )
-        elif metacol["type_category"] in ["struct", "list"]:
-            warnings.warn("complex types are not cast")
+        elif metacol["type_category"] in complex_type_categories:
+            warnings.warn(
+                f"complex types ({complex_type_categories}) are not cast "
+                f"(column: {metacol['name']})"
+            )
         else:
             raise ValueError(
                 f"meta type_category must be one of {_allowed_type_categories}."
