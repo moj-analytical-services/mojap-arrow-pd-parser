@@ -209,7 +209,7 @@ def cast_pandas_column_to_schema(
                 is_date=is_date,
                 str_datetime_format=metacol.get("datetime_format"),
             )
-        elif metacol["type_categroy"] in ["struct", "list"]:
+        elif metacol["type_category"] in ["struct", "list"]:
             warnings.warn("complex types are not cast")
         else:
             raise ValueError(
