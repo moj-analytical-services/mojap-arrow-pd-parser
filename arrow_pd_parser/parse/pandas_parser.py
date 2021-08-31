@@ -243,6 +243,7 @@ def cast_pandas_table_to_schema(
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
     bool_map: Union[Callable, dict] = None,
+    num_error_map: dict = None
 ):
     """
     Casts the columns in dataframe provided to the meta data dictionary provided.
@@ -259,7 +260,7 @@ def cast_pandas_table_to_schema(
         _default_str_bool_mapper.
     """
 
-    num_errors = "raise"
+    default_num_errors = "raise"
 
     if ignore_columns is None:
         ignore_columns = []
@@ -294,6 +295,16 @@ def cast_pandas_table_to_schema(
             raise ValueError(f"Column '{c['name']}' not in df")
 
         else:
+            # must get num_errors from either meta or num_error_map. Meta has precedence
+            if c.get("num_errors"):
+                num_errors = c.get("num_errors")
+            elif isinstance(num_error_map, dict):
+                num_errors = num_error_map.get(c["name"])
+            else:
+                num_errors = default_num_errors
+
+            print(num_errors)
+
             df[c["name"]] = cast_pandas_column_to_schema(
                 df[c["name"]],
                 metacol=c,
