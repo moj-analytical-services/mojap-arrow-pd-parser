@@ -10,9 +10,13 @@ from .arrow_parser import (
 )
 
 from .pandas_parser import (
-    cast_pandas_table_to_schema,
-    cast_pandas_column_to_schema,
     pd_read_csv,
     pd_read_json,
+    pd_read,
+)
+
+from .pandas_caster import (
+    cast_pandas_table_to_schema,
+    cast_pandas_column_to_schema,
     PandasCastError,
 )

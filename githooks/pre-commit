@@ -2,6 +2,9 @@
 #
 # commit without checks by adding --no-verify to your commit command
 
+# add .version
+poetry version | awk '{print $2}' >> .version
+
 # run Black on all .py files
 printf "\n\e[1mRunning Black Python code formatter\e[0m\n"
 hash black 2>/dev/null || { echo >&2 "Black not installed in this environment. Halting commit."; exit 1; }
