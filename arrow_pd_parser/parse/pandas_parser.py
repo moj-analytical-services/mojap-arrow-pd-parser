@@ -15,29 +15,29 @@ class reader(ABC):
     """basic reader class"""
 
     @abstractmethod
-    def read_file(self, file_path: str, meta: Metadata) -> pd.DataFrame:
+    def read_file(self, file_path: str, metadata: Metadata, **kwargs) -> pd.DataFrame:
         """reads the file into pandas DataFrame"""
 
 
 class csv_reader(reader):
     """reader for CSV files"""
 
-    def read_file(self, file_path: str, meta: Metadata) -> pd.DataFrame:
-        return pd_read_csv(file_path, meta)
+    def read_file(self, file_path: str, metadata: Metadata, **kwargs) -> pd.DataFrame:
+        return pd_read_csv(file_path, metadata, **kwargs)
 
 
 class json_reader(reader):
     """reader for json files"""
 
-    def read_file(self, file_path: str, meta: Metadata) -> pd.DataFrame:
-        return pd_read_json(file_path, meta)
+    def read_file(self, file_path: str, metadata: Metadata, **kwargs) -> pd.DataFrame:
+        return pd_read_json(file_path, metadata, **kwargs)
 
 
 class parquet_reader(reader):
     """reader for parquet files"""
 
-    def read_file(self, file_path: str, meta: Metadata) -> pd.DataFrame:
-        return pd_read_parquet(file_path, meta)
+    def read_file(self, file_path: str, metadata: Metadata, **kwargs) -> pd.DataFrame:
+        return pd_read_parquet(file_path, metadata, **kwargs)
 
 
 def _get_reader(
@@ -60,7 +60,7 @@ def _get_reader(
 
 def pd_read_csv(
     input_file: Union[TextIOWrapper, str],
-    metadata: Union[Metadata, dict],
+    metadata: Union[Metadata, dict, None],
     ignore_columns: List = None,
     drop_columns: List = None,
     pd_integer: bool = True,
@@ -103,30 +103,31 @@ def pd_read_csv(
     """
     if "low_memory" not in kwargs:
         kwargs["low_memory"] = False
-    if "dtype" not in kwargs:
+    if "dtype" not in kwargs and metadata:
         kwargs["dtype"] = str
 
     reader = _get_reader(input_file, "csv")
     df = reader(input_file, **kwargs)
-    df = cast_pandas_table_to_schema(
-        df=df,
-        metadata=metadata,
-        ignore_columns=ignore_columns,
-        drop_columns=drop_columns,
-        pd_integer=pd_integer,
-        pd_string=pd_string,
-        pd_boolean=pd_boolean,
-        pd_date_type=pd_date_type,
-        pd_timestamp_type=pd_timestamp_type,
-        bool_map=bool_map,
-    )
+    if metadata:
+        df = cast_pandas_table_to_schema(
+            df=df,
+            metadata=metadata,
+            ignore_columns=ignore_columns,
+            drop_columns=drop_columns,
+            pd_integer=pd_integer,
+            pd_string=pd_string,
+            pd_boolean=pd_boolean,
+            pd_date_type=pd_date_type,
+            pd_timestamp_type=pd_timestamp_type,
+            bool_map=bool_map,
+        )
 
     return df
 
 
 def pd_read_json(
     input_file: Union[TextIOWrapper, str],
-    metadata: Union[Metadata, dict],
+    metadata: Union[Metadata, dict, None],
     ignore_columns: List = None,
     drop_columns: List = None,
     pd_integer: bool = True,
@@ -177,29 +178,28 @@ def pd_read_json(
         warnings.warn('Ignoring orient in kwargs. Setting to orient="records"')
         kwargs.pop("orient")
 
-    # df = pd.read_json(input_file, lines=True, orient="records", **kwargs)
-    # df = wr.s3.read_json(input_file, lines=True, orient="records", **kwargs)
     reader = _get_reader(input_file, "json")
     df = reader(input_file, lines=True, orient="records", **kwargs)
-    df = cast_pandas_table_to_schema(
-        df=df,
-        metadata=metadata,
-        ignore_columns=ignore_columns,
-        drop_columns=drop_columns,
-        pd_integer=pd_integer,
-        pd_string=pd_string,
-        pd_boolean=pd_boolean,
-        pd_date_type=pd_date_type,
-        pd_timestamp_type=pd_timestamp_type,
-        bool_map=bool_map,
-    )
+    if metadata:
+        df = cast_pandas_table_to_schema(
+            df=df,
+            metadata=metadata,
+            ignore_columns=ignore_columns,
+            drop_columns=drop_columns,
+            pd_integer=pd_integer,
+            pd_string=pd_string,
+            pd_boolean=pd_boolean,
+            pd_date_type=pd_date_type,
+            pd_timestamp_type=pd_timestamp_type,
+            bool_map=bool_map,
+        )
 
     return df
 
 
 def pd_read_parquet(
     input_file: Union[TextIOWrapper, str],
-    metadata: Union[Metadata, dict],
+    metadata: Union[Metadata, dict, None],
     ignore_columns: List = None,
     drop_columns: List = None,
     pd_integer: bool = True,
@@ -245,18 +245,19 @@ def pd_read_parquet(
 
     reader = _get_reader(input_file, "parquet")
     df = reader(input_file, **kwargs)
-    df = cast_pandas_table_to_schema(
-        df=df,
-        metadata=metadata,
-        ignore_columns=ignore_columns,
-        drop_columns=drop_columns,
-        pd_integer=pd_integer,
-        pd_string=pd_string,
-        pd_boolean=pd_boolean,
-        pd_date_type=pd_date_type,
-        pd_timestamp_type=pd_timestamp_type,
-        bool_map=bool_map,
-    )
+    if metadata:
+        df = cast_pandas_table_to_schema(
+            df=df,
+            metadata=metadata,
+            ignore_columns=ignore_columns,
+            drop_columns=drop_columns,
+            pd_integer=pd_integer,
+            pd_string=pd_string,
+            pd_boolean=pd_boolean,
+            pd_date_type=pd_date_type,
+            pd_timestamp_type=pd_timestamp_type,
+            bool_map=bool_map,
+        )
 
     return df
 
@@ -270,6 +271,6 @@ def read_factory(input_file: str) -> reader:
         raise TypeError(f"{file_format} not supported")
 
 
-def pd_read(input_file: str, metadata: Metadata, **kwargs) -> pd.DataFrame:
+def pd_read(input_file: str, metadata: Metadata = None, **kwargs) -> pd.DataFrame:
     reader = read_factory(input_file)
     return reader.read_file(input_file, metadata, **kwargs)
