@@ -4,6 +4,7 @@
 
 # add .version
 poetry version | awk '{print $2}' >> .version
+git add .version
 
 # run Black on all .py files
 printf "\n\e[1mRunning Black Python code formatter\e[0m\n"
