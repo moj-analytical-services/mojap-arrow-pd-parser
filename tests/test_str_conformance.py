@@ -7,7 +7,8 @@ from pandas import Series
 
 
 @pytest.mark.parametrize(
-    "in_type,pd_old_type,pd_new_type", [("string", "object", "string")],
+    "in_type,pd_old_type,pd_new_type",
+    [("string", "object", "string")],
 )
 def test_string(in_type, pd_old_type, pd_new_type):
 
@@ -24,7 +25,8 @@ def test_string(in_type, pd_old_type, pd_new_type):
 
 
 @pytest.mark.parametrize(
-    "in_type,pd_old_type,pd_new_type", [("string", "object", "string")],
+    "in_type,pd_old_type,pd_new_type",
+    [("string", "object", "string")],
 )
 def test_csv_options(in_type, pd_old_type, pd_new_type):
     schema = pa.schema([("string_col", pa.string())])

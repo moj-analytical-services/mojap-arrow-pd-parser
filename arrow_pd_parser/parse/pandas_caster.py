@@ -24,15 +24,21 @@ class PandasCastError(Exception):
 
 
 def _convert_str_to_ns_timestamp_series(
-    s: pd.Series, str_datetime_format=None,
+    s: pd.Series,
+    str_datetime_format=None,
 ) -> pd.Series:
-    s = pd.to_datetime(s, format=str_datetime_format,)
+    s = pd.to_datetime(
+        s,
+        format=str_datetime_format,
+    )
 
     return s
 
 
 def _convert_str_to_datetime_obj_series(
-    s: pd.Series, is_date, str_datetime_format=None,
+    s: pd.Series,
+    is_date,
+    str_datetime_format=None,
 ) -> pd.Series:
 
     if str_datetime_format is None:
@@ -108,7 +114,11 @@ def convert_to_float_series(s: pd.Series, num_errors: str) -> pd.Series:
     return s
 
 
-def convert_to_bool_series(s: pd.Series, pd_boolean, bool_map=None,) -> pd.Series:
+def convert_to_bool_series(
+    s: pd.Series,
+    pd_boolean,
+    bool_map=None,
+) -> pd.Series:
     """
     Reads a pandas Series and casts to a bool. If type is already boolean like
     i.e. an object of bools and nulls, bool dtype or boolean dtype then conversion
@@ -242,7 +252,7 @@ def cast_pandas_table_to_schema(
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
     bool_map: Union[Callable, dict] = None,
-    num_error_map: dict = None
+    num_error_map: dict = None,
 ):
     """
     Casts the columns in dataframe provided to the meta data dictionary provided.
@@ -284,8 +294,9 @@ def cast_pandas_table_to_schema(
 
     all_exclude_cols = ignore_columns + drop_columns
     meta_cols_to_convert = [
-        c for c in meta["columns"] if c["name"] not in all_exclude_cols
-        or c["name"] not in meta["partitions"]
+        c
+        for c in meta["columns"]
+        if c["name"] not in all_exclude_cols or c["name"] not in meta["partitions"]
     ]
 
     for c in meta_cols_to_convert:
@@ -315,8 +326,9 @@ def cast_pandas_table_to_schema(
             )
 
     final_cols = [
-        c["name"] for c in meta["columns"] if c["name"] not in drop_columns
-        or c["name"] not in meta["partitions"]
+        c["name"]
+        for c in meta["columns"]
+        if c["name"] not in drop_columns or c["name"] not in meta["partitions"]
     ]
     df = df[final_cols]
 

@@ -1,6 +1,8 @@
-import warnings
 import os
 import pandas as pd
+import warnings
+
+import awswrangler as wr
 
 from abc import ABC, abstractmethod
 from .pandas_caster import cast_pandas_table_to_schema
@@ -11,6 +13,7 @@ from typing import List, Union
 
 class reader(ABC):
     """basic reader class"""
+
     @abstractmethod
     def read_file(self, file_path: str, meta: Metadata) -> pd.DataFrame:
         """reads the file into pandas DataFrame"""
@@ -18,20 +21,41 @@ class reader(ABC):
 
 class csv_reader(reader):
     """reader for CSV files"""
+
     def read_file(self, file_path: str, meta: Metadata) -> pd.DataFrame:
         return pd_read_csv(file_path, meta)
 
 
 class json_reader(reader):
     """reader for json files"""
+
     def read_file(self, file_path: str, meta: Metadata) -> pd.DataFrame:
         return pd_read_json(file_path, meta)
 
 
 class parquet_reader(reader):
     """reader for parquet files"""
+
     def read_file(self, file_path: str, meta: Metadata) -> pd.DataFrame:
         return pd_read_parquet(file_path, meta)
+
+
+def _get_reader(
+    input_file: Union[str, TextIOWrapper], input_type
+) -> Union[wr.s3.read_csv, pd.read_csv]:
+    use_s3_reader = {
+        "csv": {True: wr.s3.read_csv, False: pd.read_csv},
+        "json": {True: wr.s3.read_json, False: pd.read_json},
+        "parquet": {True: wr.s3.read_parquet, False: pd.read_parquet},
+    }
+
+    if isinstance(input_file, str):
+        is_s3 = input_file.startswith("s3://")
+    elif isinstance(input_file, TextIOWrapper):
+        is_s3 = False
+    else:
+        raise TypeError("input file not of correct type (IO or str)")
+    return use_s3_reader[input_type][is_s3]
 
 
 def pd_read_csv(
@@ -50,8 +74,8 @@ def pd_read_csv(
     """Read a csv file into a Pandas dataframe casting cols based on Metadata.
 
     Args:
-        input_file (Union[TextIOWrapper, str]): the CSV you want to read. string, path or
-            file-like object.
+        input_file (Union[TextIOWrapper, str]): the CSV you want to read. string, path
+            or file-like object.
         metadata Union[Metadata, dict]: what you want the column to be cast to.
         ignore_columns: (List, optional): a list of column names to not cast to
             the meta data dictionary. These columns are remained unchanged.
@@ -116,8 +140,8 @@ def pd_read_json(
     """Read a json file into a Pandas dataframe casting cols based on Metadata.
 
     Args:
-        input_file (Union[TextIOWrapper, str]): the json you want to read. string, path or
-            file-like object.
+        input_file (Union[TextIOWrapper, str]): the json you want to read. string, path
+            or file-like object.
         metadata Union[Metadata, dict]: what you want the column to be cast to.
         ignore_columns: (List, optional): a list of column names to not cast to
             the meta data dictionary. These columns are remained unchanged.
@@ -189,8 +213,8 @@ def pd_read_parquet(
     """Read a parquet file into a Pandas dataframe casting cols based on Metadata.
 
     Args:
-        input_file (Union[TextIOWrapper, str]): the parquet you want to read. string, path or
-            file-like object.
+        input_file (Union[TextIOWrapper, str]): the parquet you want to read. string,
+            path or file-like object.
         metadata Union[Metadata, dict]: what you want the column to be cast to.
         ignore_columns: (List, optional): a list of column names to not cast to
             the meta data dictionary. These columns are remained unchanged.
@@ -238,11 +262,7 @@ def pd_read_parquet(
 
 
 def read_factory(input_file: str) -> reader:
-    readers = {
-        "csv": csv_reader(),
-        "jsonl": json_reader(),
-        "parquet": parquet_reader()
-    }
+    readers = {"csv": csv_reader(), "jsonl": json_reader(), "parquet": parquet_reader()}
     file_format = os.path.splitext(input_file)[1][1:]
     if file_format in readers:
         return readers[file_format]

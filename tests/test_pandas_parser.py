@@ -180,18 +180,15 @@ def test_timestamp_conversion(s, dt_fmt, is_date, pd_date_type):
         assert_series_equal(pd.to_datetime(s, format=dt_fmt), pd.to_datetime(s_))
 
 
-@pytest.mark.parametrize(
-    "col_type",
-    ["date64", "date32", "timestamp(s)"]
-)
+@pytest.mark.parametrize("col_type", ["date64", "date32", "timestamp(s)"])
 def test_timestamp_conversion_in_df(col_type):
     meta = {
         "name": "test",
         "columns": [
             {"name": "datelong", "datetime_format": "%d-%b-%Y"},
             {"name": "dateshort", "datetime_format": "%d-%b-%y"},
-            {"name": "date_uk", "datetime_format": "%d/%m/%Y"}
-        ]
+            {"name": "date_uk", "datetime_format": "%d/%m/%Y"},
+        ],
     }
     for c in meta["columns"]:
         c["type"] = col_type
@@ -217,7 +214,7 @@ def test_cast_error():
         "name": "bad_format",
         "type": "date64()",
         "type_category": "timestamp",
-        "datetime_format": "%d/%m/%Y %H:%M:%S"
+        "datetime_format": "%d/%m/%Y %H:%M:%S",
     }
     with pytest.raises(PandasCastError) as exec_info:
         cast_pandas_column_to_schema(col, mc)
@@ -230,18 +227,15 @@ def test_cast_error():
 
 
 @pytest.mark.parametrize(
-    "row,t,tc", [
+    "row,t,tc",
+    [
         ({"a": 0, "b": "string"}, "struct<a:int64, b:string>", "struct"),
         ([0, 1, 2], "list<int64>", "list"),
         ([0, 1, 2], "large_list<int64>", "list"),
-    ]
+    ],
 )
 def test_complex_cast_warning(row, t, tc):
     col = pd.Series({"complex_col": [row, row]})
-    mc = {
-        "name": "complex_col",
-        "type": t,
-        "type_category": tc
-    }
+    mc = {"name": "complex_col", "type": t, "type_category": tc}
     with pytest.warns(UserWarning):
         cast_pandas_column_to_schema(col, mc)

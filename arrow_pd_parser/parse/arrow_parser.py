@@ -236,10 +236,7 @@ def pa_read_json_to_pandas(
 
 
 def pa_read_parquet(
-    input_file: str,
-    schema: pa.Schema = None,
-    expect_full_schema: bool = True,
-    **kwargs
+    input_file: str, schema: pa.Schema = None, expect_full_schema: bool = True, **kwargs
 ):
 
     """
