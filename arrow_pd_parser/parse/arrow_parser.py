@@ -15,7 +15,7 @@ def _get_arrow_schema(schema: Union[pa.schema, Metadata, dict]):
     elif isinstance(schema, dict):
         schema = Metadata.from_dict(schema)
         schema = ac.generate_to_meta(schema)
-    elif isinstance(schema, pa.schema):
+    elif isinstance(schema, pa.Schema):
         pass
     else:
         raise TypeError(f"schema type not allowed: {type(schema)}")
