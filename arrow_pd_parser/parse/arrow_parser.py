@@ -1,9 +1,26 @@
+from mojap_metadata.metadata.metadata import Metadata
+from mojap_metadata.converters.arrow_converter import ArrowConverter
 import pyarrow as pa
 from pyarrow import csv, json, parquet
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
 
 from typing import Union, IO
+
+
+def _get_arrow_schema(schema: Union[pa.schema, Metadata, dict]):
+    ac = ArrowConverter()
+    if isinstance(schema, Metadata):
+        schema = ac.generate_to_meta(schema)
+    elif isinstance(schema, dict):
+        schema = Metadata.from_dict(schema)
+        schema = ac.generate_to_meta(schema)
+    elif isinstance(schema, pa.schema):
+        pass
+    else:
+        raise TypeError(f"schema type not allowed: {type(schema)}")
+
+    return schema
 
 
 def update_existing_schema(
@@ -69,7 +86,7 @@ def pa_read_csv(
     input_file: Union[IO, str],
     schema: Union[pa.Schema, None] = None,
     expect_full_schema: bool = True,
-    **kwargs
+    **kwargs,
 ):
     """Read a csv file into an Arrow table.
 
@@ -89,6 +106,9 @@ def pa_read_csv(
         pyarrow.Table: the csv file in pyarrow format.
     """
 
+    if schema:
+        schema = _get_arrow_schema(schema)
+
     pa_csv_table = csv.read_csv(input_file=input_file, **kwargs)
     if schema:
         pa_csv_table = cast_arrow_table_to_schema(
@@ -100,14 +120,14 @@ def pa_read_csv(
 
 def pa_read_csv_to_pandas(
     input_file: Union[IO, str],
-    schema: pa.Schema = None,
+    schema: Union[pa.Schema, Metadata, dict] = None,
     expect_full_schema: bool = True,
     pd_boolean: bool = True,
     pd_integer: bool = True,
     pd_string: bool = True,
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
-    **kwargs
+    **kwargs,
 ):
     """Read a csv file into an Arrow table and convert it to a Pandas DataFrame.
 
@@ -151,9 +171,9 @@ def pa_read_csv_to_pandas(
 
 def pa_read_json(
     input_file: Union[IO, str],
-    schema: pa.Schema = None,
+    schema: Union[pa.Schema, Metadata, dict] = None,
     expect_full_schema: bool = True,
-    **kwargs
+    **kwargs,
 ):
     """Read a jsonlines file into an Arrow table.
 
@@ -173,6 +193,9 @@ def pa_read_json(
         pyarrow.Table: the jsonl file in pyarrow format casted to the specified schema
     """
 
+    if schema:
+        schema = _get_arrow_schema(schema)
+
     pa_json_table = json.read_json(input_file, **kwargs)
 
     if schema:
@@ -185,14 +208,14 @@ def pa_read_json(
 
 def pa_read_json_to_pandas(
     input_file: Union[IO, str],
-    schema: pa.Schema = None,
+    schema: Union[pa.Schema, Metadata, dict] = None,
     expect_full_schema: bool = True,
     pd_boolean: bool = True,
     pd_integer: bool = True,
     pd_string: bool = True,
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
-    **kwargs
+    **kwargs,
 ):
     """Read a jsonlines file into an Arrow table and convert it to a Pandas DataFrame.
 
@@ -236,7 +259,10 @@ def pa_read_json_to_pandas(
 
 
 def pa_read_parquet(
-    input_file: str, schema: pa.Schema = None, expect_full_schema: bool = True, **kwargs
+    input_file: str,
+    schema: Union[pa.Schema, Metadata, dict] = None,
+    expect_full_schema: bool = True,
+    **kwargs,
 ):
 
     """
@@ -254,6 +280,8 @@ def pa_read_parquet(
 
     if not isinstance(input_file, str):
         raise TypeError("currently only supports string paths for input")
+    if schema:
+        schema = _get_arrow_schema(schema)
 
     pa_parquet_table = parquet.read_table(input_file, **kwargs)
 
@@ -267,14 +295,14 @@ def pa_read_parquet(
 
 def pa_read_parquet_to_pandas(
     input_file: str,
-    schema: pa.Schema = None,
+    schema: Union[pa.Schema, Metadata, dict] = None,
     expect_full_schema: bool = True,
     pd_boolean: bool = True,
     pd_integer: bool = True,
     pd_string: bool = True,
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
-    **kwargs
+    **kwargs,
 ):
     """
     reads a parquet file to pandas dataframe with various type casting options

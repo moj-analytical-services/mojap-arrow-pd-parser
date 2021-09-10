@@ -4,8 +4,9 @@ import warnings
 
 import awswrangler as wr
 
-from abc import ABC, abstractmethod
 from .pandas_caster import cast_pandas_table_to_schema
+from .arrow_parser import pa_read_parquet_to_pandas
+from abc import ABC, abstractmethod
 from io import TextIOWrapper
 from mojap_metadata import Metadata
 from typing import List, Union
@@ -37,7 +38,7 @@ class parquet_reader(reader):
     """reader for parquet files"""
 
     def read_file(self, file_path: str, metadata: Metadata, **kwargs) -> pd.DataFrame:
-        return pd_read_parquet(file_path, metadata, **kwargs)
+        return pa_read_parquet_to_pandas(file_path, metadata, **kwargs)
 
 
 def _get_reader(
