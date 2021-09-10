@@ -14,7 +14,7 @@ from arrow_pd_parser.parse import (
     PandasCastError,
 )
 
-from arrow_pd_parser.parse.pandas_parser import (
+from arrow_pd_parser.parse.pandas_caster import (
     _infer_bool_type,
     convert_to_bool_series,
     convert_str_to_timestamp_series,
