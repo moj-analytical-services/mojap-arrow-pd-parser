@@ -24,21 +24,15 @@ class PandasCastError(Exception):
 
 
 def _convert_str_to_ns_timestamp_series(
-    s: pd.Series,
-    str_datetime_format=None,
+    s: pd.Series, str_datetime_format=None,
 ) -> pd.Series:
-    s = pd.to_datetime(
-        s,
-        format=str_datetime_format,
-    )
+    s = pd.to_datetime(s, format=str_datetime_format,)
 
     return s
 
 
 def _convert_str_to_datetime_obj_series(
-    s: pd.Series,
-    is_date,
-    str_datetime_format=None,
+    s: pd.Series, is_date, str_datetime_format=None,
 ) -> pd.Series:
 
     if str_datetime_format is None:
@@ -114,11 +108,7 @@ def convert_to_float_series(s: pd.Series, num_errors: str) -> pd.Series:
     return s
 
 
-def convert_to_bool_series(
-    s: pd.Series,
-    pd_boolean,
-    bool_map=None,
-) -> pd.Series:
+def convert_to_bool_series(s: pd.Series, pd_boolean, bool_map=None,) -> pd.Series:
     """
     Reads a pandas Series and casts to a bool. If type is already boolean like
     i.e. an object of bools and nulls, bool dtype or boolean dtype then conversion
