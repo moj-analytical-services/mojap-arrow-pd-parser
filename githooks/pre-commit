@@ -3,9 +3,8 @@
 # commit without checks by adding --no-verify to your commit command
 
 # add .version
-rm .version
-poetry version | awk '{print $2}' >> .version
-git add .version
+poetry version | awk '{print "__version__ = " $2}' >> arrow_pd_parser/__init__.py
+git add arrow_pd_parser/__init__.py
 
 # run Black on all .py files
 printf "\n\e[1mRunning Black Python code formatter\e[0m\n"
