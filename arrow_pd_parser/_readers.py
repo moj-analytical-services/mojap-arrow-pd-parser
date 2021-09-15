@@ -26,14 +26,14 @@ class DataFrameFileReader(ABC):
     Should just have a read method.
     """
 
-    ignore_columns: List = (None,)
-    drop_columns: List = (None,)
-    pd_integer: bool = (True,)
-    pd_string: bool = (True,)
-    pd_boolean: bool = (True,)
-    pd_date_type: str = ("datetime_object",)
-    pd_timestamp_type: str = ("datetime_object",)
-    bool_map: Dict = (None,)
+    ignore_columns: List = None
+    drop_columns: List = None
+    pd_integer: bool = True
+    pd_string: bool = True
+    pd_boolean: bool = True
+    pd_date_type: str = "datetime_object"
+    pd_timestamp_type: str = "datetime_object"
+    bool_map: Dict = None
 
     @abstractmethod
     def read(
