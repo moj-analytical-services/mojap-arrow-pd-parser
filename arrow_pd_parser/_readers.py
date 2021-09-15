@@ -2,20 +2,38 @@ import pandas as pd
 import warnings
 
 import awswrangler as wr
+from pyarrow import parquet as pq
 
 from abc import ABC, abstractmethod
 from mojap_metadata import Metadata
-from typing import List, Union
-from utils import FileFormat, match_file_format_to_str
+from typing import List, Union, Dict
+from utils import (
+    FileFormat,
+    is_s3_filepath,
+    EngineNotImplementedError,
+)
 
 from arrow_pd_parser.caster import cast_pandas_table_to_schema
+from arrow_pd_parser.pa_pd import arrow_to_pandas
+
+from dataclasses import dataclass
 
 
+@dataclass
 class DataFrameFileReader(ABC):
     """
     Abstract class for reader functions used by reader API
     Should just have a read method.
     """
+
+    ignore_columns: List = (None,)
+    drop_columns: List = (None,)
+    pd_integer: bool = (True,)
+    pd_string: bool = (True,)
+    pd_boolean: bool = (True,)
+    pd_date_type: str = ("datetime_object",)
+    pd_timestamp_type: str = ("datetime_object",)
+    bool_map: Dict = (None,)
 
     @abstractmethod
     def read(
@@ -23,11 +41,24 @@ class DataFrameFileReader(ABC):
     ) -> pd.DataFrame:
         """reads the file into pandas DataFrame"""
 
-    def is_s3_filepath(self, input_file) -> bool:
-        return input_file.startswith("s3://")
+    def _cast_pandas_table_to_schema(self, df: pd.DataFrame, metadata: Metadata):
+        df = cast_pandas_table_to_schema(
+            df=df,
+            metadata=metadata,
+            ignore_columns=self.ignore_columns,
+            drop_columns=self.drop_columns,
+            pd_integer=self.pd_integer,
+            pd_string=self.pd_string,
+            pd_boolean=self.pd_boolean,
+            pd_date_type=self.pd_date_type,
+            pd_timestamp_type=self.pd_timestamp_type,
+            bool_map=self.bool_map,
+        )
+        return df
 
 
-class CsvReader(DataFrameFileReader):
+@dataclass
+class PandasCsvReader(DataFrameFileReader):
     """reader for CSV files"""
 
     def read(
@@ -49,13 +80,18 @@ class CsvReader(DataFrameFileReader):
             if "dtype" not in kwargs:
                 kwargs["dtype"] = str
 
-        if self.is_s3(input_file):
-            return wr.s3.read_csv(input_file, **kwargs)
+        if is_s3_filepath(input_file):
+            df = wr.s3.read_csv(input_file, **kwargs)
         else:
-            return pd.read_csv(input_file, **kwargs)
+            df = pd.read_csv(input_file, **kwargs)
+
+        if metadata is not None:
+            df = self._cast_pandas_table_to_schema(df, metadata)
+        return df
 
 
-class JsonReader(DataFrameFileReader):
+@dataclass
+class PandasJsonReader(DataFrameFileReader):
     """reader for json files"""
 
     def read(
@@ -78,16 +114,26 @@ class JsonReader(DataFrameFileReader):
             warnings.warn('Ignoring orient in kwargs. Setting to orient="records"')
         kwargs["orient"] = "records"
 
-        if self.is_s3(input_file):
-            return wr.s3.read_json(input_file, **kwargs)
+        if is_s3_filepath(input_file):
+            df = wr.s3.read_json(input_file, **kwargs)
         else:
-            return pd.read_json(input_file, **kwargs)
+            df = pd.read_json(input_file, **kwargs)
+
+        if metadata is not None:
+            df = self._cast_pandas_table_to_schema(df, metadata)
+
+        return df
 
 
-class ParquetReader(DataFrameFileReader):
+@dataclass
+class ArrowParquetReader(DataFrameFileReader):
     """reader for parquet files"""
 
-    def read(self, input_file: str, **kwargs) -> pd.DataFrame:
+    cast_post_read: bool = True
+
+    def read(
+        self, input_file: str, metadata: Metadata = None, **kwargs
+    ) -> pd.DataFrame:
         """
         Reads a Parquet file and returns a Pandas DataFrame
         input_file: File to read either local or S3.
@@ -95,97 +141,43 @@ class ParquetReader(DataFrameFileReader):
         **kwargs (optional): Additional kwargs are passed to pandas or awswrangler
             read_parquet.
         """
-        if self.is_s3(input_file):
-            return wr.s3.read_parquet(input_file, **kwargs)
-        else:
-            return pd.read_parquet(input_file, **kwargs)
+        # TODO: STEPHEN FIX - URI
+        df = arrow_to_pandas(
+            pq.read_table(input_file, **kwargs),
+            pd_boolean=self.pd_boolean,
+            pd_integer=self.pd_integer,
+            pd_string=self.pd_string,
+            pd_date_type=self.pd_date_type,
+            pd_timestamp_type=self.pd_timestamp_type,
+        )
 
-
-class ReaderAPI:
-    """basic reader class to manage reading and writing to S3"""
-
-    def __init__(self, reader: DataFrameFileReader) -> None:
-        self.reader = reader
-
-    def read(
-        self,
-        input_file: str,
-        metadata: Union[Metadata, dict] = None,
-        ignore_columns: List = None,
-        drop_columns: List = None,
-        pd_integer: bool = True,
-        pd_string: bool = True,
-        pd_boolean: bool = True,
-        pd_date_type: str = "datetime_object",
-        pd_timestamp_type: str = "datetime_object",
-        bool_map=None,
-        **kwargs,
-    ) -> pd.DataFrame:
-        """
-        Read a file into a Pandas dataframe.
-        Casting cols based on Metadata if provided.
-
-        Args:
-            input_file (Union[IOBase, str]): the CSV you want to read. string, path
-                or file-like object.
-            metadata Union[Metadata, dict]: what you want the column to be cast to.
-            ignore_columns: (List, optional): a list of column names to not cast to
-                the meta data dictionary. These columns are remained unchanged.
-            drop_columns:  (List, optional): a list of column names you want to drop
-                from the dataframe.
-            pd_boolean: whether to use the new pandas boolean format. Defaults to True.
-                When set to False, uses a custom boolean format to coerce object type.
-            pd_integer: if True, converts integers to Pandas int64 format.
-                If False, uses float64. Defaults to True.
-            pd_string: Defaults to True.
-            pd_date_type (str, optional): specifies the timestamp type. Can be one of:
-                "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet
-                implemented).
-            pd_timestamp_type (str, optional): specifies the timestamp type. Can be one of:
-                "datetime_object", "pd_timestamp" or "pd_period" ("pd_period" not yet
-                implemented).
-            bool_map (Callable, dict, optional): A custom mapping function that is applied
-                to str cols to be converted to booleans before conversion to boolean type.
-                e.g. {"Yes": True, "No": False}. If not set bool values are inferred by the
-                _default_str_bool_mapper.
-            **kwargs (optional): Additional kwargs are passed to pandas.read_csv
-
-        Returns:
-            Pandas DataFrame: the data from the file as a dataframe,
-            with the specified data types
-        """
-
-        df = self.reader.read(input_file, **kwargs)
-        if metadata is not None:
-            df = cast_pandas_table_to_schema(
-                df=df,
-                metadata=metadata,
-                ignore_columns=ignore_columns,
-                drop_columns=drop_columns,
-                pd_integer=pd_integer,
-                pd_string=pd_string,
-                pd_boolean=pd_boolean,
-                pd_date_type=pd_date_type,
-                pd_timestamp_type=pd_timestamp_type,
-                bool_map=bool_map,
-            )
+        if metadata is not None and self.cast_post_read:
+            df = self._cast_pandas_table_to_schema(df, metadata)
         return df
 
 
 def get_reader_from_file_format(
-    file_format: Union[FileFormat, str]
+    file_format: Union[FileFormat, str],
+    engine: str = None,
 ) -> DataFrameFileReader:
     # Convert to enum
     if isinstance(file_format, str):
-        file_format = match_file_format_to_str(file_format, True)
+        file_format = FileFormat.from_string(file_format)
+
+    if engine is not None:
+        raise EngineNotImplementedError(
+            "We plan to support engine choice in the future. "
+            "For now we only support one engine per file type. "
+            "CSV: Pandas, JSON: Pandas, Parquet: Arrow"
+        )
 
     # Get reader
     if file_format == FileFormat.CSV:
-        reader = CsvReader()
+        reader = PandasCsvReader()
     elif file_format == FileFormat.JSON:
-        reader = JsonReader()
+        reader = PandasJsonReader()
     elif file_format == FileFormat.PARQUET:
-        reader = ParquetReader()
+        reader = ArrowParquetReader()
     else:
         raise ValueError(f"Unsupported file_format {file_format}")
 

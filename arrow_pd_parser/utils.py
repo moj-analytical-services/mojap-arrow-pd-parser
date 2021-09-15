@@ -8,10 +8,27 @@ class FileFormatNotFound(Exception):
     pass
 
 
+class EngineNotImplementedError(Exception):
+    pass
+
+
 class FileFormat(Enum):
     PARQUET = auto()
     JSON = auto()
     CSV = auto()
+
+    @classmethod
+    def from_string(cls, string: str):
+        s = string.strip().upper()
+
+        if s in ["JSON", "JSONL", "NDJSON"]:
+            s = "JSON"
+
+        return cls[s]
+
+
+def is_s3_filepath(input_file) -> bool:
+    return input_file.startswith("s3://")
 
 
 def match_file_format_to_str(s: str, raise_error=False) -> Union[FileFormat, None]:

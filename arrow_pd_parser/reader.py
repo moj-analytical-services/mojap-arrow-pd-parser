@@ -1,7 +1,9 @@
 import pandas as pd
 from mojap_metadata import Metadata
 from arrow_pd_parser._readers import (
-    ReaderAPI,
+    ArrowParquetReader,
+    PandasCsvReader,
+    PandasJsonReader,
     get_reader_from_file_format,
 )
 from utils import infer_file_format, FileFormat
@@ -9,7 +11,6 @@ from typing import List, Union
 
 
 def read(
-    self,
     input_file: str,
     metadata: Union[Metadata, dict] = None,
     file_format: Union[FileFormat, str] = None,
@@ -21,6 +22,7 @@ def read(
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
     bool_map=None,
+    parquet_cast_post_read: bool = True,
     **kwargs,
 ) -> pd.DataFrame:
     """
@@ -37,14 +39,18 @@ def read(
     """
     if file_format is None:
         file_format = infer_file_format(input_file, metadata)
+    elif isinstance(file_format, str):
+        file_format = FileFormat.from_string(file_format)
     else:
-        reader = get_reader_from_file_format(file_format)
+        pass
 
-    r = ReaderAPI(reader=reader)
-    return r.read(
+    reader = get_reader_from_file_format(file_format)
+    if file_format == FileFormat.PARQUET and not parquet_cast_post_read:
+        reader.cast_post_read = False
+
+    return reader.read(
         input_file=input_file,
         metadata=metadata,
-        file_format=file_format,
         ignore_columns=ignore_columns,
         drop_columns=drop_columns,
         pd_integer=pd_integer,
@@ -57,6 +63,6 @@ def read(
     )
 
 
-csv = ReaderAPI("csv")
-json = ReaderAPI("json")
-parquet = ReaderAPI("parquet")
+csv = PandasCsvReader()
+json = PandasJsonReader()
+parquet = ArrowParquetReader()

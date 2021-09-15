@@ -11,7 +11,10 @@ from typing import Union, IO
 
 
 def pd_to_csv(
-    df: pd.DataFrame, output_file: Union[IO, str], index: bool = False, **kwargs,
+    df: pd.DataFrame,
+    output_file: Union[IO, str],
+    index: bool = False,
+    **kwargs,
 ):
     """Export a dataframe to a csv this package can open identically.
 
