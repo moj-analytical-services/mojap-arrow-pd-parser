@@ -1,13 +1,14 @@
 import pandas as pd
 from mojap_metadata import Metadata
+from typing import List, Union
+
 from arrow_pd_parser._readers import (
     ArrowParquetReader,
     PandasCsvReader,
     PandasJsonReader,
     get_reader_from_file_format,
 )
-from utils import infer_file_format, FileFormat
-from typing import List, Union
+from arrow_pd_parser.utils import infer_file_format, FileFormat
 
 
 def read(

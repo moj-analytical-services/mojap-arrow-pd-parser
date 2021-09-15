@@ -1,22 +1,21 @@
-import pandas as pd
+from abc import ABC, abstractmethod
+from typing import List, Union, Dict
 import warnings
+from dataclasses import dataclass
 
+import pandas as pd
 import awswrangler as wr
 from pyarrow import parquet as pq
 
-from abc import ABC, abstractmethod
 from mojap_metadata import Metadata
-from typing import List, Union, Dict
-from utils import (
+
+from arrow_pd_parser.utils import (
     FileFormat,
     is_s3_filepath,
     EngineNotImplementedError,
 )
-
 from arrow_pd_parser.caster import cast_pandas_table_to_schema
 from arrow_pd_parser.pa_pd import arrow_to_pandas
-
-from dataclasses import dataclass
 
 
 @dataclass
