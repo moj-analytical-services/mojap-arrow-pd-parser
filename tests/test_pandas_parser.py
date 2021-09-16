@@ -7,14 +7,6 @@ import pandas as pd
 import numpy as np
 from pandas.testing import assert_frame_equal, assert_series_equal
 
-# from arrow_pd_parser.parse import (
-#     pd_read_csv,
-#     pd_read_json,
-#     cast_pandas_table_to_schema,
-#     cast_pandas_column_to_schema,
-#     PandasCastError,
-# )
-
 from arrow_pd_parser.caster import (
     _infer_bool_type,
     convert_to_bool_series,

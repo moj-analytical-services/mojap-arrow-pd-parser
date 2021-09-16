@@ -6,7 +6,7 @@ import pandas as pd
 import pyarrow as pa
 
 from mojap_metadata import Metadata
-from .parse.arrow_parser import _get_arrow_schema
+from arrow_pd_parser._arrow_parsers import _get_arrow_schema
 from typing import Union, IO
 
 
