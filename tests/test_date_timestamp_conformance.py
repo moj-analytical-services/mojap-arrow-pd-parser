@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import pyarrow as pa
 import numpy as np
-from arrow_pd_parser.parse import (
+from arrow_pd_parser._arrow_parsers import (
     pa_read_csv_to_pandas,
     pa_read_json_to_pandas,
 )

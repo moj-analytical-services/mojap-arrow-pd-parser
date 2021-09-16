@@ -6,23 +6,29 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 from pandas.testing import assert_frame_equal, assert_series_equal
-from arrow_pd_parser.parse import (
-    pd_read_csv,
-    pd_read_json,
-    cast_pandas_table_to_schema,
-    cast_pandas_column_to_schema,
-    PandasCastError,
-)
 
-from arrow_pd_parser.parse.pandas_caster import (
+# from arrow_pd_parser.parse import (
+#     pd_read_csv,
+#     pd_read_json,
+#     cast_pandas_table_to_schema,
+#     cast_pandas_column_to_schema,
+#     PandasCastError,
+# )
+
+from arrow_pd_parser.caster import (
     _infer_bool_type,
     convert_to_bool_series,
     convert_str_to_timestamp_series,
+    cast_pandas_table_to_schema,
+    PandasCastError,
+    cast_pandas_column_to_schema,
 )
 
 from jsonschema.exceptions import ValidationError
 
 from mojap_metadata import Metadata
+
+from arrow_pd_parser import reader
 
 
 def test_file_reader_returns_df():
@@ -33,12 +39,12 @@ def test_file_reader_returns_df():
         ]
     }
 
-    df = pd_read_csv("tests/data/example_data.csv", metadata=csv_meta)
+    df = reader.csv.read("tests/data/example_data.csv", metadata=csv_meta)
     assert isinstance(df, pd.DataFrame)
     assert [str(df[c].dtype) for c in df.columns] == ["string", "string"]
 
-    # df = pa_read_json("tests/data/example_data.jsonl")
-    # assert isinstance(df, pd.DataFrame)
+    df = reader.json.read("tests/data/example_data.jsonl")
+    assert isinstance(df, pd.DataFrame)
 
 
 def test_file_reader_works_with_both_meta_types():
@@ -48,15 +54,14 @@ def test_file_reader_works_with_both_meta_types():
             {"name": "a_column", "type_category": "string"},
         ]
     }
-    df_csv1 = pd_read_csv("tests/data/example_data.csv", csv_meta)
+
+    df_csv1 = reader.csv.read("tests/data/example_data.csv", csv_meta)
     csv_meta = Metadata.from_dict(csv_meta)
-    df_csv2 = pd_read_csv("tests/data/example_data.csv", csv_meta)
+    df_csv2 = reader.csv.read("tests/data/example_data.csv", csv_meta)
     assert_frame_equal(df_csv1, df_csv2)
-    with pytest.raises(KeyError):
-        pd_read_csv("tests/data/example_data.jsonl", metadata={})
     with pytest.raises(ValidationError):
         m = {"columns": [{"name": "broken", "type": "not-a-type"}]}
-        pd_read_csv("tests/data/example_data.jsonl", metadata=m)
+        reader.csv.read("tests/data/example_data.jsonl", metadata=m)
 
 
 @pytest.mark.parametrize("data_format", ["jsonl", "csv"])
@@ -103,12 +108,11 @@ def test_basic_end_to_end(data_format):
     assert actual_dtypes == expected_dtypes
 
     if data_format == "jsonl":
-        df2 = pd_read_json(test_data_path, meta)
-        with pytest.warns(UserWarning):
-            df3 = pd_read_json(test_data_path, meta, orient="records", lines=True)
+        df2 = reader.json.read(test_data_path, meta)
+        df3 = reader.json.read(test_data_path, meta, orient="records", lines=True)
     else:
-        df2 = pd_read_csv(test_data_path, meta)
-        df3 = pd_read_csv(test_data_path, meta, dtype=str, low_memory=False)
+        df2 = reader.csv.read(test_data_path, meta)
+        df3 = reader.csv.read(test_data_path, meta, dtype=str, low_memory=False)
 
     assert_frame_equal(dfn, df2)
     assert_frame_equal(df2, df3)
@@ -203,7 +207,7 @@ def test_timestamp_conversion_in_df(col_type):
     if col_type.startswith("date"):
         expected_col_values = [v.date() for v in expected_col_values]
 
-    df = pd_read_csv(StringIO(data), metadata=meta)
+    df = reader.csv.read(StringIO(data), metadata=meta)
     for c in df.columns:
         assert expected_col_values == df[c].to_list()
 

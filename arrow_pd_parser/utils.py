@@ -1,6 +1,6 @@
 import os
 from enum import Enum, auto
-from typing import Union
+from typing import Union, IO
 from mojap_metadata import Metadata
 
 
@@ -27,8 +27,11 @@ class FileFormat(Enum):
         return cls[s]
 
 
-def is_s3_filepath(input_file) -> bool:
-    return input_file.startswith("s3://")
+def is_s3_filepath(input_file: Union[IO, str]) -> bool:
+    if isinstance(input_file, str):
+        return input_file.startswith("s3://")
+    else:
+        return False
 
 
 def match_file_format_to_str(s: str, raise_error=False) -> Union[FileFormat, None]:

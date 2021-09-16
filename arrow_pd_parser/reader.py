@@ -1,12 +1,12 @@
 import pandas as pd
 from mojap_metadata import Metadata
-from typing import List, Union
+from typing import Union
 
 from arrow_pd_parser._readers import (
     ArrowParquetReader,
     PandasCsvReader,
     PandasJsonReader,
-    get_reader_from_file_format,
+    get_default_reader_from_file_format,
 )
 from arrow_pd_parser.utils import infer_file_format, FileFormat
 
@@ -15,14 +15,6 @@ def read(
     input_file: str,
     metadata: Union[Metadata, dict] = None,
     file_format: Union[FileFormat, str] = None,
-    ignore_columns: List = None,
-    drop_columns: List = None,
-    pd_integer: bool = True,
-    pd_string: bool = True,
-    pd_boolean: bool = True,
-    pd_date_type: str = "datetime_object",
-    pd_timestamp_type: str = "datetime_object",
-    bool_map=None,
     parquet_cast_post_read: bool = True,
     **kwargs,
 ) -> pd.DataFrame:
@@ -45,21 +37,13 @@ def read(
     else:
         pass
 
-    reader = get_reader_from_file_format(file_format)
+    reader = get_default_reader_from_file_format(file_format=file_format)
     if file_format == FileFormat.PARQUET and not parquet_cast_post_read:
         reader.cast_post_read = False
 
     return reader.read(
         input_file=input_file,
         metadata=metadata,
-        ignore_columns=ignore_columns,
-        drop_columns=drop_columns,
-        pd_integer=pd_integer,
-        pd_string=pd_string,
-        pd_boolean=pd_boolean,
-        pd_date_type=pd_date_type,
-        pd_timestamp_type=pd_timestamp_type,
-        bool_map=bool_map,
         **kwargs,
     )
 

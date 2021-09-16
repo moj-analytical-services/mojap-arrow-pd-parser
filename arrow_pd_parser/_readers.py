@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Union, Dict
+from typing import List, Union, Dict, IO
 import warnings
 from dataclasses import dataclass
 
@@ -61,7 +61,7 @@ class PandasCsvReader(DataFrameFileReader):
     """reader for CSV files"""
 
     def read(
-        self, input_file: str, metadata: Metadata = None, **kwargs
+        self, input_file: Union[IO, str], metadata: Metadata = None, **kwargs
     ) -> pd.DataFrame:
         """
         Reads a CSV file and returns a Pandas DataFrame
@@ -94,7 +94,7 @@ class PandasJsonReader(DataFrameFileReader):
     """reader for json files"""
 
     def read(
-        self, input_file: str, metadata: Metadata = None, **kwargs
+        self, input_file: Union[IO, str], metadata: Metadata = None, **kwargs
     ) -> pd.DataFrame:
         """
         Reads a JSONL file and returns a Pandas DataFrame
@@ -155,7 +155,7 @@ class ArrowParquetReader(DataFrameFileReader):
         return df
 
 
-def get_reader_from_file_format(
+def get_default_reader_from_file_format(
     file_format: Union[FileFormat, str],
     engine: str = None,
 ) -> DataFrameFileReader:

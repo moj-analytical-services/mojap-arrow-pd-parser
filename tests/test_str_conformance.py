@@ -1,7 +1,7 @@
 import pytest
 import pyarrow as pa
 from pyarrow import csv
-from arrow_pd_parser.parse import pa_read_csv_to_pandas
+from arrow_pd_parser._arrow_parsers import pa_read_csv_to_pandas
 from pandas.testing import assert_series_equal
 from pandas import Series
 
