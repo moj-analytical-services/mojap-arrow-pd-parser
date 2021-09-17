@@ -30,6 +30,7 @@ class DataFrameFileWriter(ABC):
     Abstract class for writer functions used by writer API
     Should just have a write method.
     """
+
     copy = False
     ignore_columns: List = None
     drop_columns: List = None
@@ -42,7 +43,11 @@ class DataFrameFileWriter(ABC):
 
     @abstractmethod
     def write(
-        self, df: pd.DataFrame, output_path: Union[IO, str], metadata: Metadata = None, **kwargs
+        self,
+        df: pd.DataFrame,
+        output_path: Union[IO, str],
+        metadata: Metadata = None,
+        **kwargs,
     ) -> pd.DataFrame:
         """writes the Dataframe to the output file"""
 
@@ -54,7 +59,11 @@ class PandasCsvWriter(DataFrameFileWriter):
     drop_index = True
 
     def write(
-        self, df: pd.DataFrame, output_path: Union[IO, str], metadata: Metadata = None, **kwargs
+        self,
+        df: pd.DataFrame,
+        output_path: Union[IO, str],
+        metadata: Metadata = None,
+        **kwargs,
     ):
         """
         Writes a pandas DataFrame to CSV
@@ -73,7 +82,8 @@ class PandasCsvWriter(DataFrameFileWriter):
             kwargs = {}
 
         for col in df_out.columns:
-            # Convert period columns to strings so they're exported in a way Arrow can read
+            # Convert period columns to strings so they're exported in a way
+            # Arrow can read
             if pd.api.types.is_period_dtype(df_out[col]):
                 df_out[col] = df_out[col].dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -99,7 +109,11 @@ class PandasJsonWriter(DataFrameFileWriter):
     """write for CSV files"""
 
     def write(
-        self, df: pd.DataFrame, output_path: Union[IO, str], metadata: Metadata = None, **kwargs
+        self,
+        df: pd.DataFrame,
+        output_path: Union[IO, str],
+        metadata: Metadata = None,
+        **kwargs,
     ):
         """
         Writes a pandas DataFrame to CSV
@@ -136,7 +150,8 @@ class PandasJsonWriter(DataFrameFileWriter):
                 df_out[col].replace("NaT", np.nan, regex=False, inplace=True)
 
         for col in df_out.columns:
-            # Convert period columns to strings so they're exported in a way Arrow can read
+            # Convert period columns to strings so they're exported in a way
+            # Arrow can read
             if pd.api.types.is_period_dtype(df_out[col]):
                 df_out[col] = df_out[col].dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -197,8 +212,8 @@ class ArrowParquetWriter(DataFrameFileWriter):
 
         if kwargs["version"] != self.version:
             warning_msg = (
-                f"Your kwargs for version ({kwargs.get('version')}) mismatches the writer's "
-                f"settings self.version ({self.version}). "
+                f"Your kwargs for version ({kwargs.get('version')}) mismatches "
+                f"the writer's settings self.version ({self.version})."
                 "In this instance kwargs superseeds the writer settings."
             )
             warnings.warn(warning_msg)
@@ -213,7 +228,6 @@ class ArrowParquetWriter(DataFrameFileWriter):
 
         table = pa.Table.from_pandas(df, schema=arrow_schema)
         pq.write_table(table, output_path, **kwargs)
-
 
 
 def get_default_writer_from_file_format(

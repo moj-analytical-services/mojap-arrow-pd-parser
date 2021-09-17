@@ -7,9 +7,8 @@ from arrow_pd_parser import reader, writer
 from arrow_pd_parser.utils import FileFormat
 
 
-all_formats = [
-    FileFormat.CSV, FileFormat.JSON, FileFormat.PARQUET
-]
+all_formats = [FileFormat.CSV, FileFormat.JSON, FileFormat.PARQUET]
+
 
 @pytest.mark.parametrize("trip1_file_format", all_formats)
 @pytest.mark.parametrize("trip2_file_format", all_formats)
