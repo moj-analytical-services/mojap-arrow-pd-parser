@@ -83,3 +83,15 @@ def infer_file_format(input_file, metadata: Union[Metadata, dict] = None):
         raise FileFormatNotFound(
             "Could not infer file_format from input_file or metadata"
         )
+
+
+def validate_metadata(metadata: Union[Metadata, dict]) -> Metadata:
+    if isinstance(metadata, dict):
+        return Metadata.from_dict(metadata)
+    elif isinstance(metadata, Metadata):
+        return metadata
+    else:
+        raise TypeError(
+            "Expecting metadata to be type Metadata or dict "
+            f"got {type(metadata)}"
+        )

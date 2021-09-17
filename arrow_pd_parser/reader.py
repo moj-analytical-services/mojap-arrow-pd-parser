@@ -12,10 +12,10 @@ from arrow_pd_parser.utils import infer_file_format, FileFormat
 
 
 def read(
-    input_file: str,
+    input_path: str,
     metadata: Union[Metadata, dict] = None,
     file_format: Union[FileFormat, str] = None,
-    parquet_cast_post_read: bool = True,
+    parquet_expect_full_schema: bool = True,
     **kwargs,
 ) -> pd.DataFrame:
     """
@@ -24,25 +24,25 @@ def read(
     reader based on the value of file_format (can be a str or FileFormat
     Enum (PARQUET, CSV or JSON)).
 
-    If file_format=None, then will try to infer file format from input_file
+    If file_format=None, then will try to infer file format from input_path
     and failing that metadata. Will error if no file type can be achieved.
 
     See csv.read(), json.read() or parquet.read() for docsctring on
     other params.
     """
     if file_format is None:
-        file_format = infer_file_format(input_file, metadata)
+        file_format = infer_file_format(input_path, metadata)
     elif isinstance(file_format, str):
         file_format = FileFormat.from_string(file_format)
     else:
         pass
 
     reader = get_default_reader_from_file_format(file_format=file_format)
-    if file_format == FileFormat.PARQUET and not parquet_cast_post_read:
-        reader.cast_post_read = False
+    if file_format == FileFormat.PARQUET:
+        reader.expect_full_schema = parquet_expect_full_schema
 
     return reader.read(
-        input_file=input_file,
+        input_path=input_path,
         metadata=metadata,
         **kwargs,
     )

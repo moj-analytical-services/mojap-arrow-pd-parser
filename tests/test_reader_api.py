@@ -1,9 +1,8 @@
 import pytest
 import tempfile
 
-from arrow_pd_parser import reader
+from arrow_pd_parser import reader, writer
 from pandas.testing import assert_frame_equal
-from arrow_pd_parser._export import pd_to_parquet
 
 
 @pytest.mark.parametrize("data_format", ["jsonl", "csv"])
@@ -67,7 +66,7 @@ def test_round_trip():
     with tempfile.NamedTemporaryFile(suffix=".parquet") as f:
         tmp_out_file = f.name
     original = reader.csv.read("tests/data/all_types.csv", meta)
-    pd_to_parquet(original, tmp_out_file)
+    writer.parquet.write(original, tmp_out_file)
 
     data_paths = {
         "csv": "tests/data/all_types.csv",
@@ -78,13 +77,11 @@ def test_round_trip():
     for type1 in ["csv", "json", "parquet"]:
         for type2 in ["csv", "json", "parquet"]:
             df1 = reader.read(
-                input_file=data_paths[type1],
+                input_path=data_paths[type1],
                 metadata=meta,
-                parquet_cast_post_read=False,
             )
             df2 = reader.read(
-                input_file=data_paths[type2],
+                input_path=data_paths[type2],
                 metadata=meta,
-                parquet_cast_post_read=False,
             )
             assert_frame_equal(df1, df2)

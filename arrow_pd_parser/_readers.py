@@ -8,14 +8,17 @@ import awswrangler as wr
 from pyarrow import parquet as pq
 
 from mojap_metadata import Metadata
+from mojap_metadata.converters.arrow_converter import ArrowConverter
 
 from arrow_pd_parser.utils import (
     FileFormat,
     is_s3_filepath,
     EngineNotImplementedError,
+    validate_metadata,
 )
 from arrow_pd_parser.caster import cast_pandas_table_to_schema
 from arrow_pd_parser.pa_pd import arrow_to_pandas
+from arrow_pd_parser._arrow_parsers import cast_arrow_table_to_schema
 
 
 @dataclass
@@ -36,7 +39,7 @@ class DataFrameFileReader(ABC):
 
     @abstractmethod
     def read(
-        self, input_file: str, metadata: Union[Metadata, dict] = None, **kwargs
+        self, input_path: str, metadata: Union[Metadata, dict] = None, **kwargs
     ) -> pd.DataFrame:
         """reads the file into pandas DataFrame"""
 
@@ -61,11 +64,11 @@ class PandasCsvReader(DataFrameFileReader):
     """reader for CSV files"""
 
     def read(
-        self, input_file: Union[IO, str], metadata: Metadata = None, **kwargs
+        self, input_path: Union[IO, str], metadata: Metadata = None, **kwargs
     ) -> pd.DataFrame:
         """
         Reads a CSV file and returns a Pandas DataFrame
-        input_file: File to read either local or S3.
+        input_path: File to read either local or S3.
         metadata: A metadata object or dict
         **kwargs (optional): Additional kwargs are passed to pandas or awswrangler
             read_csv. Note if metadata is not None then kwargs: low_memory=False
@@ -79,10 +82,10 @@ class PandasCsvReader(DataFrameFileReader):
             if "dtype" not in kwargs:
                 kwargs["dtype"] = str
 
-        if is_s3_filepath(input_file):
-            df = wr.s3.read_csv(input_file, **kwargs)
+        if is_s3_filepath(input_path):
+            df = wr.s3.read_csv(input_path, **kwargs)
         else:
-            df = pd.read_csv(input_file, **kwargs)
+            df = pd.read_csv(input_path, **kwargs)
 
         if metadata is not None:
             df = self._cast_pandas_table_to_schema(df, metadata)
@@ -94,11 +97,11 @@ class PandasJsonReader(DataFrameFileReader):
     """reader for json files"""
 
     def read(
-        self, input_file: Union[IO, str], metadata: Metadata = None, **kwargs
+        self, input_path: Union[IO, str], metadata: Metadata = None, **kwargs
     ) -> pd.DataFrame:
         """
         Reads a JSONL file and returns a Pandas DataFrame
-        input_file: File to read either local or S3.
+        input_path: File to read either local or S3.
         metadata: A metadata object or dict
         **kwargs (optional): Additional kwargs are passed to pandas or awswrangler
             read_json. Note orient and lines will be ignored as always set to
@@ -113,10 +116,10 @@ class PandasJsonReader(DataFrameFileReader):
             warnings.warn('Ignoring orient in kwargs. Setting to orient="records"')
         kwargs["orient"] = "records"
 
-        if is_s3_filepath(input_file):
-            df = wr.s3.read_json(input_file, **kwargs)
+        if is_s3_filepath(input_path):
+            df = wr.s3.read_json(input_path, **kwargs)
         else:
-            df = pd.read_json(input_file, **kwargs)
+            df = pd.read_json(input_path, **kwargs)
 
         if metadata is not None:
             df = self._cast_pandas_table_to_schema(df, metadata)
@@ -128,21 +131,33 @@ class PandasJsonReader(DataFrameFileReader):
 class ArrowParquetReader(DataFrameFileReader):
     """reader for parquet files"""
 
-    cast_post_read: bool = True
+    expect_full_schema: bool = True
 
     def read(
-        self, input_file: str, metadata: Metadata = None, **kwargs
+        self, input_path: str, metadata: Metadata = None, **kwargs
     ) -> pd.DataFrame:
         """
         Reads a Parquet file and returns a Pandas DataFrame
-        input_file: File to read either local or S3.
+        input_path: File to read either local or S3.
         metadata: A metadata object or dict
-        **kwargs (optional): Additional kwargs are passed to pandas or awswrangler
-            read_parquet.
+        **kwargs (optional): Additional kwargs are passed to the arrow reader
+            arrow.parquet.read_table
         """
-        # TODO: STEPHEN FIX - URI
+
+        if metadata:
+            meta = validate_metadata(metadata)
+            schema = ArrowConverter().generate_from_meta(meta)
+        else:
+            schema = None
+
+        pa_parquet_table = cast_arrow_table_to_schema(
+            pq.read_table(input_path, **kwargs),
+            schema=schema,
+            expect_full_schema=self.expect_full_schema
+        )
+
         df = arrow_to_pandas(
-            pq.read_table(input_file, **kwargs),
+            pa_parquet_table,
             pd_boolean=self.pd_boolean,
             pd_integer=self.pd_integer,
             pd_string=self.pd_string,
@@ -150,8 +165,6 @@ class ArrowParquetReader(DataFrameFileReader):
             pd_timestamp_type=self.pd_timestamp_type,
         )
 
-        if metadata is not None and self.cast_post_read:
-            df = self._cast_pandas_table_to_schema(df, metadata)
         return df
 
 
