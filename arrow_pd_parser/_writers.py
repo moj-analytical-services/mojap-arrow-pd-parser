@@ -163,15 +163,14 @@ class PandasJsonWriter(DataFrameFileWriter):
                 ""
             )
             raise ValueError(error_msg)
-        elif not kwargs.get("lines", True):
+
+        if not kwargs.get("lines", True):
             error_msg = (
                 "You are not allowed to specify lines in your kwargs "
                 "as anything other than `lines='records'`. This is a "
                 "jsonl writer and requires this setting."
             )
             raise ValueError(error_msg)
-        else:
-            pass
 
         if is_s3_filepath(output_path):
             wr.s3.to_json(df_out, output_path, orient="records", lines=True, **kwargs)
