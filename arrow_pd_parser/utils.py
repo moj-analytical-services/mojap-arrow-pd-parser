@@ -73,7 +73,7 @@ def infer_file_format(input_file, metadata: Union[Metadata, dict] = None):
     except FileFormatNotFound:
         if metadata:
             try:
-                file_format = infer_file_format_from_meta()
+                file_format = infer_file_format_from_meta(metadata)
             except FileFormatNotFound:
                 pass
 
