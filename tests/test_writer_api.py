@@ -2,8 +2,6 @@ import pytest
 import tempfile
 
 from arrow_pd_parser import writer, reader
-from pandas.testing import assert_frame_equal
-from arrow_pd_parser._export import pd_to_parquet
 
 
 @pytest.mark.parametrize("data_format", ["jsonl", "csv", "snappy.parquet"])
