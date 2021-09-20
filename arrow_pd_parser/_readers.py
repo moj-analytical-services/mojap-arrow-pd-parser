@@ -14,7 +14,7 @@ from arrow_pd_parser.utils import (
     FileFormat,
     is_s3_filepath,
     EngineNotImplementedError,
-    validate_metadata,
+    validate_and_enrich_metadata,
 )
 from arrow_pd_parser.caster import cast_pandas_table_to_schema
 from arrow_pd_parser.pa_pd import arrow_to_pandas
@@ -43,7 +43,10 @@ class DataFrameFileReader(ABC):
     ) -> pd.DataFrame:
         """reads the file into pandas DataFrame"""
 
-    def _cast_pandas_table_to_schema(self, df: pd.DataFrame, metadata: Metadata):
+    def _cast_pandas_table_to_schema(
+        self, df: pd.DataFrame, metadata: Union[Metadata, dict]
+    ):
+        metadata = validate_and_enrich_metadata(metadata)
         df = cast_pandas_table_to_schema(
             df=df,
             metadata=metadata,
@@ -64,7 +67,10 @@ class PandasCsvReader(DataFrameFileReader):
     """reader for CSV files"""
 
     def read(
-        self, input_path: Union[IO, str], metadata: Metadata = None, **kwargs
+        self,
+        input_path: Union[IO, str],
+        metadata: Union[Metadata, dict] = None,
+        **kwargs,
     ) -> pd.DataFrame:
         """
         Reads a CSV file and returns a Pandas DataFrame
@@ -87,7 +93,15 @@ class PandasCsvReader(DataFrameFileReader):
         else:
             df = pd.read_csv(input_path, **kwargs)
 
-        if metadata is not None:
+        if metadata is None:
+            df = df.convert_dtypes(
+                infer_objects=True,
+                convert_string=self.pd_string,
+                convert_integer=self.pd_integer,
+                convert_boolean=self.pd_boolean,
+                convert_floating=False,
+            )
+        else:
             df = self._cast_pandas_table_to_schema(df, metadata)
         return df
 
@@ -97,7 +111,10 @@ class PandasJsonReader(DataFrameFileReader):
     """reader for json files"""
 
     def read(
-        self, input_path: Union[IO, str], metadata: Metadata = None, **kwargs
+        self,
+        input_path: Union[IO, str],
+        metadata: Union[Metadata, dict] = None,
+        **kwargs,
     ) -> pd.DataFrame:
         """
         Reads a JSONL file and returns a Pandas DataFrame
@@ -121,7 +138,15 @@ class PandasJsonReader(DataFrameFileReader):
         else:
             df = pd.read_json(input_path, **kwargs)
 
-        if metadata is not None:
+        if metadata is None:
+            df = df.convert_dtypes(
+                infer_objects=True,
+                convert_string=self.pd_string,
+                convert_integer=self.pd_integer,
+                convert_boolean=self.pd_boolean,
+                convert_floating=False,
+            )
+        else:
             df = self._cast_pandas_table_to_schema(df, metadata)
 
         return df
@@ -144,20 +169,19 @@ class ArrowParquetReader(DataFrameFileReader):
             arrow.parquet.read_table
         """
 
-        if metadata:
-            meta = validate_metadata(metadata)
-            schema = ArrowConverter().generate_from_meta(meta)
-        else:
-            schema = None
+        arrow_tab = pq.read_table(input_path, **kwargs)
 
-        pa_parquet_table = cast_arrow_table_to_schema(
-            pq.read_table(input_path, **kwargs),
-            schema=schema,
-            expect_full_schema=self.expect_full_schema
-        )
+        if metadata:
+            meta = validate_and_enrich_metadata(metadata)
+            schema = ArrowConverter().generate_from_meta(meta)
+            arrow_tab = cast_arrow_table_to_schema(
+                arrow_tab,
+                schema=schema,
+                expect_full_schema=self.expect_full_schema,
+            )
 
         df = arrow_to_pandas(
-            pa_parquet_table,
+            arrow_tab,
             pd_boolean=self.pd_boolean,
             pd_integer=self.pd_integer,
             pd_string=self.pd_string,

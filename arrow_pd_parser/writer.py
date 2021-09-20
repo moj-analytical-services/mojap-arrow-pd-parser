@@ -1,4 +1,3 @@
-import pytest
 from typing import Union
 
 import pandas as pd
@@ -13,7 +12,6 @@ from arrow_pd_parser._writers import (
 from arrow_pd_parser.utils import infer_file_format, FileFormat
 
 
-@pytest.mark.parametrize("data_format", ["jsonl", "csv", "snappy.parquet"])
 def write(
     df: pd.DataFrame,
     output_path: str,

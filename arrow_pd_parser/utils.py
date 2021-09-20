@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 from enum import Enum, auto
 from typing import Union, IO
 from mojap_metadata import Metadata
@@ -85,13 +86,16 @@ def infer_file_format(input_file, metadata: Union[Metadata, dict] = None):
         )
 
 
-def validate_metadata(metadata: Union[Metadata, dict]) -> Metadata:
+def validate_and_enrich_metadata(metadata: Union[Metadata, dict]) -> Metadata:
     if isinstance(metadata, dict):
-        return Metadata.from_dict(metadata)
+        m = Metadata.from_dict(metadata)
+        m.set_col_type_category_from_types()
+        return m
     elif isinstance(metadata, Metadata):
+        m = deepcopy(metadata)
+        m.set_col_type_category_from_types()
         return metadata
     else:
         raise TypeError(
-            "Expecting metadata to be type Metadata or dict "
-            f"got {type(metadata)}"
+            "Expecting metadata to be type Metadata or dict " f"got {type(metadata)}"
         )

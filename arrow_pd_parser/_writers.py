@@ -20,7 +20,7 @@ from arrow_pd_parser.utils import (
     FileFormat,
     is_s3_filepath,
     EngineNotImplementedError,
-    validate_metadata,
+    validate_and_enrich_metadata,
 )
 
 
@@ -46,7 +46,7 @@ class DataFrameFileWriter(ABC):
         self,
         df: pd.DataFrame,
         output_path: Union[IO, str],
-        metadata: Metadata = None,
+        metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> pd.DataFrame:
         """writes the Dataframe to the output file"""
@@ -62,7 +62,7 @@ class PandasCsvWriter(DataFrameFileWriter):
         self,
         df: pd.DataFrame,
         output_path: Union[IO, str],
-        metadata: Metadata = None,
+        metadata: Union[Metadata, dict] = None,
         **kwargs,
     ):
         """
@@ -112,7 +112,7 @@ class PandasJsonWriter(DataFrameFileWriter):
         self,
         df: pd.DataFrame,
         output_path: Union[IO, str],
-        metadata: Metadata = None,
+        metadata: Union[Metadata, dict] = None,
         **kwargs,
     ):
         """
@@ -186,7 +186,11 @@ class ArrowParquetWriter(DataFrameFileWriter):
     compression: str = "snappy"
 
     def write(
-        self, df: pd.DataFrame, output_path: str, metadata: Metadata = None, **kwargs
+        self,
+        df: pd.DataFrame,
+        output_path: str,
+        metadata: Union[Metadata, dict] = None,
+        **kwargs,
     ):
         """
         Writes a pandas DataFrame to CSV
@@ -200,7 +204,7 @@ class ArrowParquetWriter(DataFrameFileWriter):
             kwargs = {}
 
         if metadata:
-            meta = validate_metadata(metadata)
+            meta = validate_and_enrich_metadata(metadata)
             arrow_schema = ArrowConverter().generate_from_meta(meta)
 
         else:
