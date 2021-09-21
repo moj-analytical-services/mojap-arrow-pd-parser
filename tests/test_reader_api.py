@@ -1,8 +1,26 @@
 import pytest
 import tempfile
 
-from arrow_pd_parser import reader, writer
+import numpy as np
+import pandas as pd
 from pandas.testing import assert_frame_equal
+
+from arrow_pd_parser import reader, writer
+
+
+@pytest.mark.parametrize("data_format", ["jsonl", "csv"])
+def test_inferred_cols_pandas_types(data_format):
+    df = reader.read(f"tests/data/all_types.{data_format}")
+    test = df.dtypes.to_dict()
+    assert isinstance(test["i"], pd.core.arrays.integer.Int64Dtype)
+    assert isinstance(test["my_float"], type(np.dtype("float64")))
+    assert isinstance(test["my_bool"], pd.core.arrays.boolean.BooleanDtype)
+    if data_format == "jsonl":
+        pytest.skip("Pandas cannot infer bool with nulls from JSON datasets")
+    else:
+        assert isinstance(test["my_nullable_bool"], pd.core.arrays.boolean.BooleanDtype)
+
+    assert isinstance(test["my_string"], pd.core.arrays.string_.StringDtype)
 
 
 @pytest.mark.parametrize("data_format", ["jsonl", "csv"])
