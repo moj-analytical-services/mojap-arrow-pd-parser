@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 1.0.0 - 2021-09-22
+
+First Major Release
+
+- Changed API for reader and writer to simplify entry point to readers and writers
+- Reduced support for multiple readers currently only uses Pandas for CSV and JSONL and Arrow for Parquet. Codebase can be expanded in the future.
+- Automatically reads from S3 or local depending on string filepath
+- README.md discusses use of package. Changes are not backwards compatible.
+- Pushed arrow dependency to at least version `5.0.0`. This is to reflect changes made in the parquet reader that is necessary for packages in our other eco systems.
+
 ## 0.4.4 - 2021-06-08
 
 - made it so partition data is not cast
