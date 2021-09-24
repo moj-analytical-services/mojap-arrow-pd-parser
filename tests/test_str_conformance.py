@@ -1,13 +1,14 @@
 import pytest
 import pyarrow as pa
 from pyarrow import csv
-from arrow_pd_parser.parse import pa_read_csv_to_pandas
+from arrow_pd_parser._arrow_parsers import pa_read_csv_to_pandas
 from pandas.testing import assert_series_equal
 from pandas import Series
 
 
 @pytest.mark.parametrize(
-    "in_type,pd_old_type,pd_new_type", [("string", "object", "string")],
+    "in_type,pd_old_type,pd_new_type",
+    [("string", "object", "string")],
 )
 def test_string(in_type, pd_old_type, pd_new_type):
 
@@ -24,7 +25,8 @@ def test_string(in_type, pd_old_type, pd_new_type):
 
 
 @pytest.mark.parametrize(
-    "in_type,pd_old_type,pd_new_type", [("string", "object", "string")],
+    "in_type,pd_old_type,pd_new_type",
+    [("string", "object", "string")],
 )
 def test_csv_options(in_type, pd_old_type, pd_new_type):
     schema = pa.schema([("string_col", pa.string())])

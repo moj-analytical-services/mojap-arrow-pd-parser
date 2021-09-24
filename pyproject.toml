@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arrow_pd_parser"
-version = "0.4.4"
+version = "1.0.0"
 description = "MoJ arrow-pd-parser"
 authors = ["Karik Isichei <karik.isichei@digital.justice.gov.uk>",
            "Alec Johnson <alec.johnson@digital.justice.gov.uk>",
@@ -18,14 +18,17 @@ repository = "https://github.com/moj-analytical-services/mojap-arrow-pd-parser"
 homepage = "https://github.com/moj-analytical-services/mojap-arrow-pd-parser"
 
 [tool.poetry.dependencies]
-python = ">=3.7.1,<=3.9"
-pandas = "^1.2"
-pyarrow = ">=2.0.0,<4.0.0"
-mojap-metadata = {version = "^1.2.1", extras = ["arrow"]}
+python = ">=3.7.1,<3.10" # wrangler dependency
+pandas = ">=1.2"
+pyarrow = ">=5.0.0"
+mojap-metadata = {version = "^1.2.2", extras = ["arrow"]}
+awswrangler = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.1"
+pytest = ">=6.1"
 flake8 = "^3.8.4"
+black = ">=21.8b0"
+yamllint = ">=1.26.3"
 
 [build-system]
 requires = ["poetry>=0.12"]

@@ -3,12 +3,12 @@ import tempfile
 import pytest
 import pyarrow as pa
 
-from arrow_pd_parser.parse import (
+from arrow_pd_parser._arrow_parsers import (
     pa_read_csv_to_pandas,
     pa_read_json_to_pandas,
     pa_read_parquet_to_pandas,
 )
-from arrow_pd_parser.export import pd_to_csv, pd_to_json, pd_to_parquet
+from arrow_pd_parser._export import pd_to_csv, pd_to_json, pd_to_parquet
 from pandas.testing import assert_frame_equal
 
 schemas = [

@@ -1,7 +1,10 @@
 import pytest
 import pyarrow as pa
 
-from arrow_pd_parser.parse import pa_read_csv_to_pandas, pa_read_json_to_pandas
+from arrow_pd_parser._arrow_parsers import (
+    pa_read_csv_to_pandas,
+    pa_read_json_to_pandas,
+)
 
 
 # Parameters used across tests for both json and csv
