@@ -5,7 +5,7 @@ count = True
 show-source = True
 statistics = True
 # ignore E203 (disagrees with PEP8 and Black) and W503 (outdated - replaced by W504)
-ignore = E203, W503
+ignore = E203, W503, C901
 # potential to only check a specific list of rules not covered by Black
 # select = E9, F63, F7, F82
 exclude = 
@@ -19,5 +19,5 @@ exclude =
 	venv/,
 	env/,
 	.github
-	__init__.py
-
+	__init__.py,
+	*.ipynb_checkpoints/*

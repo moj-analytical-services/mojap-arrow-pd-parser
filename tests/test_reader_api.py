@@ -1,9 +1,26 @@
 import pytest
 import tempfile
 
-from arrow_pd_parser import reader
+import numpy as np
+import pandas as pd
 from pandas.testing import assert_frame_equal
-from arrow_pd_parser._export import pd_to_parquet
+
+from arrow_pd_parser import reader, writer
+
+
+@pytest.mark.parametrize("data_format", ["jsonl", "csv"])
+def test_inferred_cols_pandas_types(data_format):
+    df = reader.read(f"tests/data/all_types.{data_format}")
+    test = df.dtypes.to_dict()
+    assert isinstance(test["i"], pd.core.arrays.integer.Int64Dtype)
+    assert isinstance(test["my_float"], type(np.dtype("float64")))
+    assert isinstance(test["my_bool"], pd.core.arrays.boolean.BooleanDtype)
+    if data_format == "jsonl":
+        pytest.skip("Pandas cannot infer bool with nulls from JSON datasets")
+    else:
+        assert isinstance(test["my_nullable_bool"], pd.core.arrays.boolean.BooleanDtype)
+
+    assert isinstance(test["my_string"], pd.core.arrays.string_.StringDtype)
 
 
 @pytest.mark.parametrize("data_format", ["jsonl", "csv"])
@@ -67,7 +84,7 @@ def test_round_trip():
     with tempfile.NamedTemporaryFile(suffix=".parquet") as f:
         tmp_out_file = f.name
     original = reader.csv.read("tests/data/all_types.csv", meta)
-    pd_to_parquet(original, tmp_out_file)
+    writer.parquet.write(original, tmp_out_file)
 
     data_paths = {
         "csv": "tests/data/all_types.csv",
@@ -78,13 +95,11 @@ def test_round_trip():
     for type1 in ["csv", "json", "parquet"]:
         for type2 in ["csv", "json", "parquet"]:
             df1 = reader.read(
-                input_file=data_paths[type1],
+                input_path=data_paths[type1],
                 metadata=meta,
-                parquet_cast_post_read=False,
             )
             df2 = reader.read(
-                input_file=data_paths[type2],
+                input_path=data_paths[type2],
                 metadata=meta,
-                parquet_cast_post_read=False,
             )
             assert_frame_equal(df1, df2)

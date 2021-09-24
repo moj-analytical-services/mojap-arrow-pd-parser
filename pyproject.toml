@@ -18,18 +18,17 @@ repository = "https://github.com/moj-analytical-services/mojap-arrow-pd-parser"
 homepage = "https://github.com/moj-analytical-services/mojap-arrow-pd-parser"
 
 [tool.poetry.dependencies]
-python = ">=3.7.1,<3.10.0"
-pandas = "^1.2"
-pyarrow = ">=2.0.0,<6.0.0"
-mojap-metadata = {version = "^1.2.1", extras = ["arrow"]}
-poetry = "^1.1.8"
-awswrangler = "^2.11.0"
+python = ">=3.7.1,<3.10" # wrangler dependency
+pandas = ">=1.2"
+pyarrow = ">=5.0.0"
+mojap-metadata = {version = "^1.2.2", extras = ["arrow"]}
+awswrangler = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.1"
+pytest = ">=6.1"
 flake8 = "^3.8.4"
-black = "^21.8b0"
-yamllint = "^1.26.3"
+black = ">=21.8b0"
+yamllint = ">=1.26.3"
 
 [build-system]
 requires = ["poetry>=0.12"]
