@@ -21,6 +21,7 @@ from arrow_pd_parser.utils import (
         ("ndjson", FileFormat.JSON),
         ("csv", FileFormat.CSV),
         ("parquet", FileFormat.PARQUET),
+        ("SNAPPY.PARQUET", FileFormat.PARQUET),
     ],
 )
 def test_file_format(input_str, expected):

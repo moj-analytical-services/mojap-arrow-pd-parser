@@ -22,10 +22,16 @@ class FileFormat(Enum):
     def from_string(cls, string: str):
         s = string.strip().upper()
 
-        if s in ["JSON", "JSONL", "NDJSON"]:
-            s = "JSON"
-
-        return cls[s]
+        if "PARQUET" in s:
+            return cls["PARQUET"]
+        elif "JSON" in s:
+            return cls["JSON"]
+        elif "CSV" in s:
+            return cls["CSV"]
+        else:
+            raise ValueError(
+                f"Cannot infer type from given string: {string}"
+            )
 
 
 def is_s3_filepath(input_file: Union[IO, str]) -> bool:
