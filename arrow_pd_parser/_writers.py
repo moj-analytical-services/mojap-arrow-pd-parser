@@ -15,7 +15,7 @@ from pyarrow import parquet as pq
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
-from arrow_pd_parser._arrow_casters import cast_arrow_table_to_schema
+from arrow_pd_parser._arrow_parsers import cast_arrow_table_to_schema
 from arrow_pd_parser.utils import (
     FileFormat,
     is_s3_filepath,
