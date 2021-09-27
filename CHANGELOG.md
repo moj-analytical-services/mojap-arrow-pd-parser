@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 1.0.1 - 2021-09-27
+
+- Removed `tests/__init__.py` not needed anymore.
+- Made the `File_Format.from_string()` a bit more expansive. Just now checks if `PARQUET`, `JSON` or `CSV` are in the string (in that order).
+
 ## 1.0.0 - 2021-09-22
 
 First Major Release
