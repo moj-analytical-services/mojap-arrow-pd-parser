@@ -229,8 +229,8 @@ class ArrowParquetWriter(DataFrameFileWriter):
             )
             warnings.warn(warning_msg)
 
-        table = pa.Table.from_pandas(df, schema=arrow_schema)
-        #table = cast_arrow_table_to_schema(table, schema=arrow_schema)
+        table = pa.Table.from_pandas(df)
+        table = cast_arrow_table_to_schema(table, schema=arrow_schema)
         pq.write_table(table, output_path, **kwargs)
 
 
