@@ -15,7 +15,7 @@ from pyarrow import parquet as pq
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
-
+from arrow_pd_parser.caster import cast_pandas_table_to_schema
 from arrow_pd_parser.utils import (
     FileFormat,
     is_s3_filepath,
@@ -229,7 +229,10 @@ class ArrowParquetWriter(DataFrameFileWriter):
             )
             warnings.warn(warning_msg)
 
-        table = pa.Table.from_pandas(df, schema=arrow_schema)
+        if metadata is not None:
+            df = cast_pandas_table_to_schema(df, metadata)
+        table = pa.Table.from_pandas(df)
+        
         pq.write_table(table, output_path, **kwargs)
 
 
