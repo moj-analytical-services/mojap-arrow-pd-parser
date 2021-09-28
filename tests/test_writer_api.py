@@ -58,6 +58,7 @@ def test_write(data_format, use_meta):
 
     assert b1 == b2
 
+
 def test_write_local_path_not_exist():
     # tests that if the path does not exist, the writer will not error
     with tempfile.TemporaryDirectory() as tmp_dir:
