@@ -1,3 +1,4 @@
+import os
 import pytest
 import tempfile
 
@@ -56,3 +57,10 @@ def test_write(data_format, use_meta):
         b2 = f.read()
 
     assert b1 == b2
+
+def test_write_local_path_not_exist():
+    # tests that if the path does not exist, the writer will not error
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        df = reader.read("tests/data/all_types.csv")
+        out_file = os.path.join(tmp_dir, "does/not/exist/data.csv")
+        writer.write(df, out_file)
