@@ -58,6 +58,7 @@ def test_write(data_format, use_meta):
 
     assert b1 == b2
 
+
 @pytest.mark.parametrize("data_format", ["jsonl", "csv", "snappy.parquet", "parquet"])
 def test_write_local_path_not_exist(data_format):
     # tests that if the path does not exist, the writer will not error
