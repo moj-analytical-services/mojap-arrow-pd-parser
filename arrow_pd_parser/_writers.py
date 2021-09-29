@@ -3,7 +3,7 @@ from typing import List, Union, Dict, IO
 import warnings
 from dataclasses import dataclass
 import datetime
-
+import os
 
 import pandas as pd
 import numpy as np
@@ -101,6 +101,7 @@ class PandasCsvWriter(DataFrameFileWriter):
         if is_s3_filepath(output_path):
             wr.s3.to_csv(df_out, output_path, **kwargs)
         else:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             df_out.to_csv(output_path, **kwargs)
 
 
@@ -175,6 +176,7 @@ class PandasJsonWriter(DataFrameFileWriter):
         if is_s3_filepath(output_path):
             wr.s3.to_json(df_out, output_path, orient="records", lines=True, **kwargs)
         else:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             df_out.to_json(output_path, orient="records", lines=True, **kwargs)
 
 
@@ -230,6 +232,8 @@ class ArrowParquetWriter(DataFrameFileWriter):
             warnings.warn(warning_msg)
 
         table = pa.Table.from_pandas(df, schema=arrow_schema)
+        if not output_path.startswith("s3://"):
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
         pq.write_table(table, output_path, **kwargs)
 
 

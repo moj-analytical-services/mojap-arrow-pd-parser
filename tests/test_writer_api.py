@@ -1,10 +1,11 @@
+import os
 import pytest
 import tempfile
 
 from arrow_pd_parser import writer, reader
 
 
-@pytest.mark.parametrize("data_format", ["jsonl", "csv", "snappy.parquet"])
+@pytest.mark.parametrize("data_format", ["jsonl", "csv", "snappy.parquet", "parquet"])
 @pytest.mark.parametrize("use_meta", [True, False])
 def test_write(data_format, use_meta):
 
@@ -45,7 +46,7 @@ def test_write(data_format, use_meta):
         writer.csv.write(df, tmp_out2, meta)
     elif data_format == "jsonl":
         writer.json.write(df, tmp_out2, meta)
-    elif data_format == "snappy.parquet":
+    elif data_format in ["snappy.parquet", "parquet"]:
         writer.parquet.write(df, tmp_out2, meta)
     else:
         raise ValueError(f"Test wasn't expecting: {data_format}")
@@ -56,3 +57,12 @@ def test_write(data_format, use_meta):
         b2 = f.read()
 
     assert b1 == b2
+
+
+@pytest.mark.parametrize("data_format", ["jsonl", "csv", "snappy.parquet", "parquet"])
+def test_write_local_path_not_exist(data_format):
+    # tests that if the path does not exist, the writer will not error
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        df = reader.read("tests/data/all_types.csv")
+        out_file = os.path.join(tmp_dir, f"does/not/exist/data.{data_format}")
+        writer.write(df, out_file)
