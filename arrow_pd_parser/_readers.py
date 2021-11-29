@@ -93,9 +93,7 @@ class PandasCsvReader(DataFrameFileReader):
         else:
             df = pd.read_csv(input_path, **kwargs)
 
-        if metadata is None and (
-            self.pd_string or self.pd_integer or self.pd_boolean
-        ):
+        if metadata is None and (self.pd_string or self.pd_integer or self.pd_boolean):
             df = df.convert_dtypes(
                 infer_objects=True,
                 convert_string=self.pd_string,
@@ -140,9 +138,7 @@ class PandasJsonReader(DataFrameFileReader):
         else:
             df = pd.read_json(input_path, **kwargs)
 
-        if metadata is None and (
-            self.pd_string or self.pd_integer or self.pd_boolean
-        ):
+        if metadata is None and (self.pd_string or self.pd_integer or self.pd_boolean):
             df = df.convert_dtypes(
                 infer_objects=True,
                 convert_string=self.pd_string,
