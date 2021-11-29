@@ -29,9 +29,7 @@ class FileFormat(Enum):
         elif "CSV" in s:
             return cls["CSV"]
         else:
-            raise ValueError(
-                f"Cannot infer type from given string: {string}"
-            )
+            raise ValueError(f"Cannot infer type from given string: {string}")
 
 
 def is_s3_filepath(input_file: Union[IO, str]) -> bool:
@@ -94,4 +92,6 @@ def infer_file_format(input_file, metadata: Union[Metadata, dict] = None):
 
 def validate_and_enrich_metadata(metadata: Union[Metadata, dict]) -> Metadata:
     m = Metadata.from_infer(metadata)
+    m = deepcopy(m)
+    m.set_col_type_category_from_types()
     return m
