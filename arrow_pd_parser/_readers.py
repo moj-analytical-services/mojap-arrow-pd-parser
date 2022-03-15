@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Union, Dict, IO, Iterable
+from typing import List, Union, Dict, IO, Iterable, Optional
 import warnings
 from dataclasses import dataclass
 
@@ -25,7 +25,7 @@ from arrow_pd_parser._arrow_parsers import cast_arrow_table_to_schema
 class DataFrameFileReader(ABC):
     """
     Abstract class for reader functions used by reader API
-    Should just have a read method.
+    Should just have a read method returning a pandas DataFrame.
     """
 
     ignore_columns: List = None
@@ -193,58 +193,31 @@ class ArrowParquetReader(DataFrameFileReader):
 
 
 @dataclass
-class DataFrameFileReaderIterator(ABC):
+class DataFrameFileReaderIterator(DataFrameFileReader):
     """
-    Abstract class for reader functions used by reader API
-    Should just have a read_iter method.
+    Abstract class for reader functions used by reader API.
+    Should just have a read method returning an iterable of pandas DataFrames.
     """
 
-    ignore_columns: List = None
-    drop_columns: List = None
-    pd_integer: bool = True
-    pd_string: bool = True
-    pd_boolean: bool = True
-    pd_date_type: str = "datetime_object"
-    pd_timestamp_type: str = "datetime_object"
-    bool_map: Dict = None
+    chunksize: int = 65536
 
     @abstractmethod
-    def read_iter(
+    def read(
         self,
         input_path: str,
-        chunksize: int = 65536,
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
         """reads the file into pandas DataFrame"""
-
-    def _cast_pandas_table_to_schema(
-        self, df: pd.DataFrame, metadata: Union[Metadata, dict]
-    ):
-        metadata = validate_and_enrich_metadata(metadata)
-        df = cast_pandas_table_to_schema(
-            df=df,
-            metadata=metadata,
-            ignore_columns=self.ignore_columns,
-            drop_columns=self.drop_columns,
-            pd_integer=self.pd_integer,
-            pd_string=self.pd_string,
-            pd_boolean=self.pd_boolean,
-            pd_date_type=self.pd_date_type,
-            pd_timestamp_type=self.pd_timestamp_type,
-            bool_map=self.bool_map,
-        )
-        return df
 
 
 @dataclass
 class PandasCsvReaderIterator(DataFrameFileReaderIterator):
     """reader for CSV files"""
 
-    def read_iter(
+    def read(
         self,
         input_path: Union[IO, str],
-        chunksize: int = 65536,
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
@@ -265,9 +238,9 @@ class PandasCsvReaderIterator(DataFrameFileReaderIterator):
                 kwargs["dtype"] = str
 
         if is_s3_filepath(input_path):
-            df_iter = wr.s3.read_csv(input_path, chunksize=chunksize, **kwargs)
+            df_iter = wr.s3.read_csv(input_path, chunksize=self.chunksize, **kwargs)
         else:
-            df_iter = pd.read_csv(input_path, chunksize=chunksize, **kwargs)
+            df_iter = pd.read_csv(input_path, chunksize=self.chunksize, **kwargs)
 
         for df in df_iter:
             if metadata is None and (
@@ -289,10 +262,9 @@ class PandasCsvReaderIterator(DataFrameFileReaderIterator):
 class PandasJsonReaderIterator(DataFrameFileReaderIterator):
     """reader for json files"""
 
-    def read_iter(
+    def read(
         self,
         input_path: Union[IO, str],
-        chunksize=65536,
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
@@ -314,9 +286,9 @@ class PandasJsonReaderIterator(DataFrameFileReaderIterator):
         kwargs["orient"] = "records"
 
         if is_s3_filepath(input_path):
-            df_iter = wr.s3.read_json(input_path, chunksize=chunksize, **kwargs)
+            df_iter = wr.s3.read_json(input_path, chunksize=self.chunksize, **kwargs)
         else:
-            df_iter = pd.read_json(input_path, chunksize=chunksize, **kwargs)
+            df_iter = pd.read_json(input_path, chunksize=self.chunksize, **kwargs)
 
         for df in df_iter:
             if metadata is None and (
@@ -341,8 +313,8 @@ class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
 
     expect_full_schema: bool = True
 
-    def read_iter(
-        self, input_path: str, chunksize=65536, metadata: Metadata = None, **kwargs
+    def read(
+        self, input_path: str, metadata: Metadata = None, **kwargs
     ) -> Iterable[pd.DataFrame]:
         """
         Reads a Parquet file and returns a Pandas DataFrame
@@ -363,7 +335,7 @@ class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
 
         pf = pq.ParquetFile(input_path, **kwargs)
 
-        for record_batch in pf.iter_batches(batch_size=chunksize):
+        for record_batch in pf.iter_batches(batch_size=self.chunksize):
             arrow_tab = record_batch.to_pandas()
 
             df = arrow_to_pandas(
@@ -380,7 +352,7 @@ class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
 
 def get_default_reader_from_file_format(
     file_format: Union[FileFormat, str],
-    iterator: bool = False,
+    chunksize: Optional[int] = None,
     engine: str = None,
 ) -> DataFrameFileReader:
     # Convert to enum
@@ -396,11 +368,23 @@ def get_default_reader_from_file_format(
 
     # Get reader
     if file_format == FileFormat.CSV:
-        reader = PandasCsvReaderIterator() if iterator else PandasCsvReader()
+        reader = (
+            PandasCsvReaderIterator(chunksize=chunksize)
+            if chunksize is not None
+            else PandasCsvReader()
+        )
     elif file_format == FileFormat.JSON:
-        reader = PandasJsonReaderIterator() if iterator else PandasJsonReader()
+        reader = (
+            PandasJsonReaderIterator(chunksize=chunksize)
+            if chunksize is not None
+            else PandasJsonReader()
+        )
     elif file_format == FileFormat.PARQUET:
-        reader = ArrowParquetReaderIterator() if iterator else ArrowParquetReader()
+        reader = (
+            ArrowParquetReaderIterator(chunksize=chunksize)
+            if chunksize is not None
+            else ArrowParquetReader()
+        )
     else:
         raise ValueError(f"Unsupported file_format {file_format}")
 

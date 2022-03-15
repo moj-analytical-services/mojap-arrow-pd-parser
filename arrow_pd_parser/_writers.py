@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import List, Union, Dict, IO
+from typing import List, Union, Dict, IO, Iterable, Optional
 import warnings
 from dataclasses import dataclass
 import datetime
 import os
+import io
 
 import pandas as pd
 import numpy as np
@@ -41,15 +42,40 @@ class DataFrameFileWriter(ABC):
     pd_timestamp_type: str = "datetime_object"
     bool_map: Dict = None
 
-    @abstractmethod
     def write(
         self,
-        df: pd.DataFrame,
+        df: Union[pd.DataFrame, Iterable[pd.DataFrame]],
         output_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
         **kwargs,
-    ) -> pd.DataFrame:
+    ) -> None:
         """writes the Dataframe to the output file"""
+
+        if "mode" in kwargs:
+            mode = kwargs["mode"]
+            del kwargs["mode"]
+        else:
+            mode = "overwrite"
+
+        if isinstance(df, pd.DataFrame):
+            self._write(df, output_path, metadata, mode=mode, **kwargs)
+        else:
+            # Write first chunk from iterable using selected mode
+            self._write(next(df), output_path, metadata, mode=mode, **kwargs)
+            # then append the rest
+            for chunk in df:
+                self._write(chunk, output_path, metadata, mode="append", **kwargs)
+
+    @abstractmethod
+    def _write(
+        df: Union[pd.DataFrame, Iterable[pd.DataFrame]],
+        output_path: Union[IO, str],
+        metadata: Union[Metadata, dict] = None,
+        mode: str = "overwrite",
+        **kwargs,
+    ) -> None:
+        """abstract method to write a Dataframe to the output file using
+        the specific output"""
 
 
 @dataclass
@@ -58,11 +84,12 @@ class PandasCsvWriter(DataFrameFileWriter):
 
     drop_index = True
 
-    def write(
+    def _write(
         self,
         df: pd.DataFrame,
         output_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        mode: str = "overwrite",
         **kwargs,
     ):
         """
@@ -99,21 +126,25 @@ class PandasCsvWriter(DataFrameFileWriter):
             kwargs["index"] = not self.drop_index
 
         if is_s3_filepath(output_path):
-            wr.s3.to_csv(df_out, output_path, **kwargs)
+            wr.s3.to_csv(df_out, output_path, dataset=True, mode=mode, **kwargs)
         else:
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            df_out.to_csv(output_path, **kwargs)
+            dirs = os.path.dirname(output_path)
+            if dirs:
+                os.makedirs(dirs, exist_ok=True)
+            write_mode = "a" if mode == "append" else "w"
+            df_out.to_csv(output_path, mode=write_mode, **kwargs)
 
 
 @dataclass
 class PandasJsonWriter(DataFrameFileWriter):
-    """write for CSV files"""
+    """write for JSON files"""
 
-    def write(
+    def _write(
         self,
         df: pd.DataFrame,
         output_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        mode: str = "overwrite",
         **kwargs,
     ):
         """
@@ -174,10 +205,25 @@ class PandasJsonWriter(DataFrameFileWriter):
             raise ValueError(error_msg)
 
         if is_s3_filepath(output_path):
-            wr.s3.to_json(df_out, output_path, orient="records", lines=True, **kwargs)
+            wr.s3.to_json(
+                df_out,
+                output_path,
+                orient="records",
+                lines=True,
+                dataset=True,
+                mode=mode,
+                **kwargs,
+            )
         else:
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            df_out.to_json(output_path, orient="records", lines=True, **kwargs)
+            dirs = os.path.dirname(output_path)
+            if dirs:
+                os.makedirs(dirs, exist_ok=True)
+            if mode == "append":
+                with io.StringIO() as df_json, open(output_path, "a") as f:
+                    df_out.to_json(df_json, orient="records", lines=True, **kwargs)
+                    f.write(df_json.read())
+            else:
+                df_out.to_json(output_path, orient="records", lines=True, **kwargs)
 
 
 @dataclass
@@ -189,11 +235,11 @@ class ArrowParquetWriter(DataFrameFileWriter):
 
     def write(
         self,
-        df: pd.DataFrame,
-        output_path: str,
+        df: Union[pd.DataFrame, Iterable[pd.DataFrame]],
+        output_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Writes a pandas DataFrame to CSV
         output_path: File to read either local or S3.
@@ -202,15 +248,41 @@ class ArrowParquetWriter(DataFrameFileWriter):
         **kwargs (optional): Additional kwargs are passed to
           pyarrow.parquet.write_table
         """
-        if kwargs is None:
-            kwargs = {}
+
+        if not output_path.startswith("s3://"):
+            dirs = os.path.dirname(output_path)
+            if dirs:
+                os.makedirs(dirs, exist_ok=True)
 
         if metadata:
             meta = validate_and_enrich_metadata(metadata)
             arrow_schema = ArrowConverter().generate_from_meta(meta)
-
         else:
             arrow_schema = None
+
+        with pq.ParquetWriter(output_path, schema=arrow_schema) as parquet_writer:
+            if isinstance(df, pd.DataFrame):
+                self._write(df, parquet_writer)
+            else:
+                self._write(next(df))
+                for chunk in df:
+                    self._write(chunk, parquet_writer)
+
+    def _write(
+        self,
+        df: pd.DataFrame,
+        parquet_writer: pq.ParquetWriter,
+        **kwargs,
+    ):
+        """
+        Writes a pandas DataFrame to CSV
+        parquet_writer: pyarrow.parquet.ParquetWriter to write this and
+            potentially other DataFrames
+        **kwargs (optional): Additional kwargs are passed to
+          pyarrow.parquet.write_table
+        """
+        if kwargs is None:
+            kwargs = {}
 
         kwargs["version"] = kwargs.get("version", self.version)
         kwargs["compression"] = kwargs.get("compression", self.compression)
@@ -219,7 +291,7 @@ class ArrowParquetWriter(DataFrameFileWriter):
             warning_msg = (
                 f"Your kwargs for version ({kwargs.get('version')}) mismatches "
                 f"the writer's settings self.version ({self.version})."
-                "In this instance kwargs superseeds the writer settings."
+                "In this instance kwargs supersedes the writer settings."
             )
             warnings.warn(warning_msg)
 
@@ -227,14 +299,12 @@ class ArrowParquetWriter(DataFrameFileWriter):
             warning_msg = (
                 f"Your kwargs for compression ({kwargs.get('compression')}) mismatches "
                 f"the writer's settings self.compression ({self.compression}). "
-                "In this instance kwargs superseeds the writer settings."
+                "In this instance kwargs supersedes the writer settings."
             )
             warnings.warn(warning_msg)
 
-        table = pa.Table.from_pandas(df, schema=arrow_schema)
-        if not output_path.startswith("s3://"):
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        pq.write_table(table, output_path, **kwargs)
+        table = pa.Table.from_pandas(df)
+        parquet_writer.write_table(table, **kwargs)
 
 
 def get_default_writer_from_file_format(
