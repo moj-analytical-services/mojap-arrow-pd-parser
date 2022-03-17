@@ -132,7 +132,8 @@ class PandasCsvWriter(DataFrameFileWriter):
             if dirs:
                 os.makedirs(dirs, exist_ok=True)
             write_mode = "a" if mode == "append" else "w"
-            df_out.to_csv(output_path, mode=write_mode, **kwargs)
+            write_headers = write_mode != "a"
+            df_out.to_csv(output_path, header=write_headers, mode=write_mode, **kwargs)
 
 
 @dataclass
