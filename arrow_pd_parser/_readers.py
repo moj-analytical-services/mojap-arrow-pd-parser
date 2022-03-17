@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 import awswrangler as wr
+import pyarrow as pa
 from pyarrow import parquet as pq
 
 from mojap_metadata import Metadata
@@ -324,19 +325,19 @@ class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
             arrow.parquet.read_table
         """
 
-        if metadata:
-            meta = validate_and_enrich_metadata(metadata)
-            schema = ArrowConverter().generate_from_meta(meta)
-            arrow_tab = cast_arrow_table_to_schema(
-                arrow_tab,
-                schema=schema,
-                expect_full_schema=self.expect_full_schema,
-            )
-
         pf = pq.ParquetFile(input_path, **kwargs)
 
         for record_batch in pf.iter_batches(batch_size=self.chunksize):
-            arrow_tab = record_batch.to_pandas()
+            arrow_tab = pa.Table.from_batches([record_batch])
+
+            if metadata:
+                meta = validate_and_enrich_metadata(metadata)
+                schema = ArrowConverter().generate_from_meta(meta)
+                arrow_tab = cast_arrow_table_to_schema(
+                    arrow_tab,
+                    schema=schema,
+                    expect_full_schema=self.expect_full_schema,
+                )
 
             df = arrow_to_pandas(
                 arrow_tab,

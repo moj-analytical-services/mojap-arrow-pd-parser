@@ -289,14 +289,15 @@ class ArrowParquetWriter(DataFrameFileWriter):
             if chunked
             else pa.Table.from_pandas(df, schema=arrow_schema)
         )
-        with pq.ParquetWriter(output_path, schema=table.schema) as parquet_writer:
-            self._write(table, parquet_writer, **kwargs)
+        with pq.ParquetWriter(
+            output_path, schema=table.schema, **kwargs
+        ) as parquet_writer:
+            self._write(table, parquet_writer)
             if chunked:
                 for chunk in df:
                     self._write(
                         pa.Table.from_pandas(chunk, arrow_schema),
                         parquet_writer,
-                        **kwargs,
                     )
 
     def _write(
