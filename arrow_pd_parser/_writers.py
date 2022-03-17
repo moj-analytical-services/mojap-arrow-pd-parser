@@ -199,7 +199,7 @@ class PandasJsonWriter(DataFrameFileWriter):
         if not kwargs.get("lines", True):
             error_msg = (
                 "You are not allowed to specify lines in your kwargs "
-                "as anything other than `lines='records'`. This is a "
+                "as anything other than `lines=True`. This is a "
                 "jsonl writer and requires this setting."
             )
             raise ValueError(error_msg)
@@ -218,10 +218,11 @@ class PandasJsonWriter(DataFrameFileWriter):
             dirs = os.path.dirname(output_path)
             if dirs:
                 os.makedirs(dirs, exist_ok=True)
+
             if mode == "append":
                 with io.StringIO() as df_json, open(output_path, "a") as f:
                     df_out.to_json(df_json, orient="records", lines=True, **kwargs)
-                    f.write(df_json.read())
+                    f.write(df_json.getvalue())
             else:
                 df_out.to_json(output_path, orient="records", lines=True, **kwargs)
 
