@@ -249,38 +249,6 @@ class ArrowParquetWriter(DataFrameFileWriter):
           pyarrow.parquet.write_table
         """
 
-        if not output_path.startswith("s3://"):
-            dirs = os.path.dirname(output_path)
-            if dirs:
-                os.makedirs(dirs, exist_ok=True)
-
-        if metadata:
-            meta = validate_and_enrich_metadata(metadata)
-            arrow_schema = ArrowConverter().generate_from_meta(meta)
-        else:
-            arrow_schema = None
-
-        with pq.ParquetWriter(output_path, schema=arrow_schema) as parquet_writer:
-            if isinstance(df, pd.DataFrame):
-                self._write(df, parquet_writer)
-            else:
-                self._write(next(df))
-                for chunk in df:
-                    self._write(chunk, parquet_writer)
-
-    def _write(
-        self,
-        df: pd.DataFrame,
-        parquet_writer: pq.ParquetWriter,
-        **kwargs,
-    ):
-        """
-        Writes a pandas DataFrame to CSV
-        parquet_writer: pyarrow.parquet.ParquetWriter to write this and
-            potentially other DataFrames
-        **kwargs (optional): Additional kwargs are passed to
-          pyarrow.parquet.write_table
-        """
         if kwargs is None:
             kwargs = {}
 
@@ -303,7 +271,47 @@ class ArrowParquetWriter(DataFrameFileWriter):
             )
             warnings.warn(warning_msg)
 
-        table = pa.Table.from_pandas(df)
+        if not output_path.startswith("s3://"):
+            dirs = os.path.dirname(output_path)
+            if dirs:
+                os.makedirs(dirs, exist_ok=True)
+
+        if metadata:
+            meta = validate_and_enrich_metadata(metadata)
+            arrow_schema = ArrowConverter().generate_from_meta(meta)
+        else:
+            arrow_schema = None
+
+        chunked = not isinstance(df, pd.DataFrame)
+        table = (
+            pa.Table.from_pandas(next(df), schema=arrow_schema)
+            if chunked
+            else pa.Table.from_pandas(df, schema=arrow_schema)
+        )
+        with pq.ParquetWriter(output_path, schema=table.schema) as parquet_writer:
+            self._write(table, parquet_writer, **kwargs)
+            if chunked:
+                for chunk in df:
+                    self._write(
+                        pa.Table.from_pandas(chunk, arrow_schema),
+                        parquet_writer,
+                        **kwargs,
+                    )
+
+    def _write(
+        self,
+        table: pa.Table,
+        parquet_writer: pq.ParquetWriter,
+        **kwargs,
+    ):
+        """
+        Writes a pandas DataFrame to CSV
+        parquet_writer: pyarrow.parquet.ParquetWriter to write this and
+            potentially other DataFrames
+        **kwargs (optional): Additional kwargs are passed to
+          pyarrow.parquet.write_table
+        """
+
         parquet_writer.write_table(table, **kwargs)
 
 
