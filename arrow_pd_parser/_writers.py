@@ -172,7 +172,8 @@ class PandasJsonWriter(DataFrameFileWriter):
             elif any(
                 [
                     pd.api.types.is_datetime64_any_dtype(df_out[col]),
-                    isinstance(
+                    len(df_out[col][df_out[col].notnull()]) > 0
+                    and isinstance(
                         df_out[col][df_out[col].notnull()].iloc[0],
                         (datetime.datetime, datetime.date),
                     ),
