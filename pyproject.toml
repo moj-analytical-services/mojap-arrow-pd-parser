@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arrow_pd_parser"
-version = "1.0.3"
+version = "1.0.4"
 description = "MoJ arrow-pd-parser"
 authors = ["Karik Isichei <karik.isichei@digital.justice.gov.uk>",
            "Alec Johnson <alec.johnson@digital.justice.gov.uk>",
@@ -29,6 +29,7 @@ pytest = ">=6.1"
 flake8 = "^3.8.4"
 black = ">=21.8b0"
 yamllint = ">=1.26.3"
+toml = "^0.10.2"
 
 [build-system]
 requires = ["poetry>=0.12"]
