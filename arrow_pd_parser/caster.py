@@ -61,12 +61,7 @@ def _convert_str_to_datetime_obj_series(
 
 def _default_str_bool_mapper(s: Union[str, int, float]) -> bool:
 
-    basic_map = {
-        "1": True,
-        "0": False,
-        "t": True,
-        "f": False
-    }
+    basic_map = {"1": True, "0": False, "t": True, "f": False}
     # In case bools are interpreted as numerics
     s_str = str(s)
     # Check for "truthiness" of string e.g. not 0 == True but not "0" == False

@@ -331,7 +331,7 @@ class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
 
         for batch in batch_iter:
             arrow_tab = pa.Table.from_batches([batch])
-            
+
             if metadata:
                 meta = validate_and_enrich_metadata(metadata)
                 schema = ArrowConverter().generate_from_meta(meta)
