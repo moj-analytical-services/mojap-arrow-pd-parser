@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Union, Dict, IO, Iterable, Optional
+from typing import List, Union, Dict, IO, Iterable
 import warnings
 from dataclasses import dataclass
 import datetime

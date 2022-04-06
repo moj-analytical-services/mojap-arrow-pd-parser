@@ -1,7 +1,6 @@
 import pandas as pd
 from mojap_metadata import Metadata
 from typing import Union, Iterable, Optional
-from contextlib import contextmanager
 
 from arrow_pd_parser._readers import (
     ArrowParquetReader,
