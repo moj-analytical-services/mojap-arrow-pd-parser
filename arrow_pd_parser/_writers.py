@@ -32,7 +32,7 @@ class DataFrameFileWriter(ABC):
     Should just have a write method.
     """
 
-    copy = False
+    copy = True
     ignore_columns: List = None
     drop_columns: List = None
     pd_integer: bool = True
