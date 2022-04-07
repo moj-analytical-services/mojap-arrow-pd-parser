@@ -49,7 +49,11 @@ class DataFrameFileWriter(ABC):
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> None:
-        """writes the Dataframe to the output file"""
+        """writes a DataFrame or iterator of DataFrames to the output file
+        output_path: File to write either local or S3.
+        metadata: A metadata object or dict to cast the dataframe to before writing
+          (not necessarily needed for writing especially for CSV)
+        **kwargs (optional): Additional kwargs are passed to write method."""
 
         if "mode" in kwargs:
             mode = kwargs["mode"]
@@ -68,7 +72,7 @@ class DataFrameFileWriter(ABC):
 
     @abstractmethod
     def _write(
-        df: Union[pd.DataFrame, Iterable[pd.DataFrame]],
+        df: pd.DataFrame,
         output_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
         mode: str = "overwrite",
@@ -94,7 +98,7 @@ class PandasCsvWriter(DataFrameFileWriter):
     ):
         """
         Writes a pandas DataFrame to CSV
-        output_path: File to read either local or S3.
+        output_path: File to write either local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
           (not necessarily needed for writing especially for CSV)
         **kwargs (optional): Additional kwargs are passed to pandas or awswrangler
@@ -119,7 +123,7 @@ class PandasCsvWriter(DataFrameFileWriter):
             warning_msg = (
                 f"Your kwargs for index ({kwargs_index}) mismatches the writer's "
                 f"settings self.drop_index ({self.drop_index}). "
-                "In this instance kwargs superseeds the writer settings."
+                "In this instance kwargs supersedes the writer settings."
             )
             warnings.warn(warning_msg)
         else:
@@ -132,6 +136,7 @@ class PandasCsvWriter(DataFrameFileWriter):
             if dirs:
                 os.makedirs(dirs, exist_ok=True)
             write_mode = "a" if mode == "append" else "w"
+            # Don't write header row again when appending
             write_headers = write_mode != "a"
             df_out.to_csv(output_path, header=write_headers, mode=write_mode, **kwargs)
 
@@ -294,12 +299,13 @@ class ArrowParquetWriter(DataFrameFileWriter):
         with pq.ParquetWriter(
             output_path, schema=table.schema, **kwargs
         ) as parquet_writer:
-            self._write(table, parquet_writer)
+            self._write(table, parquet_writer, **kwargs)
             if chunked:
                 for chunk in df:
                     self._write(
                         pa.Table.from_pandas(chunk, arrow_schema),
                         parquet_writer,
+                        **kwargs,
                     )
 
     def _write(
