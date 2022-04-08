@@ -263,6 +263,7 @@ def transform(df):
     return df
 
 df_iter = reader.read("s3://my_bucket/csv_data/my_table.csv")
+# Using a generator comprehension
 df_transformed_iter = (transform(df) for df in df_iter)
 writer.write(df_transformed_iter, "s3://my_bucket/parquet_data/my_transformed_table.parquet")
 ```
