@@ -45,7 +45,7 @@ df2.dtypes # Note that Pandas struggles with nullable booleans when it reads JSO
 writer.write(df1, "new_output.snappy.parquet")
 ```
 
-Note that the default behavior of this package is to utilse the new pandas datatypes for Integers, Booleans and Strings that represent Nulls as `pd.NA()`. Dates are returned as nullable objects of `datetime.date()` type and timestamps are `datetime.datetime()`. By default we enforce these types instead of the native pandas timestamp as the indexing for the Pandas timestamp is nanoseconds and can cause dates to be out of bounds. See the [timestamps](#timestamps) section for more details.
+Note that the default behavior of this package is to utilise the new pandas datatypes for Integers, Booleans and Strings that represent Nulls as `pd.NA()`. Dates are returned as nullable objects of `datetime.date()` type and timestamps are `datetime.datetime()`. By default we enforce these types instead of the native pandas timestamp as the indexing for the Pandas timestamp is nanoseconds and can cause dates to be out of bounds. See the [timestamps](#timestamps) section for more details.
 
 The `reader.read()` method will infer what the file format is based on the extension of your filepath failing that it will take the format from your metadata if provided. By default the reader.read() will use the following readers for the prescribed file format.
 
@@ -241,3 +241,29 @@ csv.pd_timestamp_type="pd_timestamp"
 df = csv.read("tests/data/datetime_type.csv")
 df.my_datetime.dtype # dtype('<M8[ns]')
 ```
+
+#### Reading and writing large datasets
+
+Datasets that are too large to fit into memory can be read in chunks. If the `chunksize` parameter is given to `reader.read` then an iterator of dataframes, each containing `chunksize` rows, is returned rather than a single dataframe. The `writer.write` function can use these iterators instead of a dataframe. 
+
+```python
+from arrow_pd_parser import reader, writer
+
+df_iter = reader.read("s3://my_bucket/csv_data/my_table.csv")
+writer.write(df_iter, "s3://my_bucket/parquet_data/my_table.parquet")
+```
+
+If the dataframe needs transforming before writing then use a generator.
+
+```python
+from arrow_pd_parser import reader, writer
+
+def transform(df):
+    # do something
+    return df
+
+df_iter = reader.read("s3://my_bucket/csv_data/my_table.csv")
+df_transformed_iter = (transform(df) for df in df_iter)
+writer.write(df_transformed_iter, "s3://my_bucket/parquet_data/my_transformed_table.parquet")
+```
+
