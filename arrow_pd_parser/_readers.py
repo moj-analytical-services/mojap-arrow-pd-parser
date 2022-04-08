@@ -201,6 +201,7 @@ class DataFrameFileReaderIterator(DataFrameFileReader):
     Should just have a read method returning an iterable of pandas DataFrames.
     """
 
+    # Number of lines to read in per pass
     chunksize: int = 65536
 
     @abstractmethod
