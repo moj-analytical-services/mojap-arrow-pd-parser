@@ -225,7 +225,7 @@ class PandasJsonWriter(DataFrameFileWriter):
 
         if is_s3_filepath(output_path):
             if single_file:
-                wr.w3.to_json(df_out, output_path, **kwargs)
+                wr.s3.to_json(df_out, output_path, **kwargs)
             else:
                 wr.s3.to_json(
                     df_out,
