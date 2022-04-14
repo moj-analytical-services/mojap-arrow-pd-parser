@@ -62,7 +62,13 @@ class DataFrameFileWriter(ABC):
             mode = "overwrite"
 
         if isinstance(df, pd.DataFrame):
-            self._write(df, output_path, metadata, mode=mode, **kwargs)
+            # When writing a single dataframe as an overwrite, ensure that
+            # a single file is produced when writing to S3, matching the
+            # behaviour when writing to a file (Note: needed for s3_data_packer)
+            single_file = mode == "overwrite"
+            self._write(
+                df, output_path, metadata, mode=mode, single_file=single_file, **kwargs
+            )
         else:
             # Write first chunk from iterable using selected mode
             self._write(next(df), output_path, metadata, mode=mode, **kwargs)
@@ -76,6 +82,7 @@ class DataFrameFileWriter(ABC):
         output_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
         mode: str = "overwrite",
+        single_file: bool = False,  # write one file rather than dataset directory
         **kwargs,
     ) -> None:
         """abstract method to write a Dataframe to the output file using
@@ -94,6 +101,7 @@ class PandasCsvWriter(DataFrameFileWriter):
         output_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
         mode: str = "overwrite",
+        single_file: bool = False,
         **kwargs,
     ):
         """
@@ -130,7 +138,10 @@ class PandasCsvWriter(DataFrameFileWriter):
             kwargs["index"] = not self.drop_index
 
         if is_s3_filepath(output_path):
-            wr.s3.to_csv(df_out, output_path, dataset=True, mode=mode, **kwargs)
+            if single_file:
+                wr.s3.to_csv(df_out, output_path, **kwargs)
+            else:
+                wr.s3.to_csv(df_out, output_path, dataset=True, mode=mode, **kwargs)
         else:
             dirs = os.path.dirname(output_path)
             if dirs:
@@ -151,6 +162,7 @@ class PandasJsonWriter(DataFrameFileWriter):
         output_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
         mode: str = "overwrite",
+        single_file: bool = False,
         **kwargs,
     ):
         """
@@ -212,15 +224,18 @@ class PandasJsonWriter(DataFrameFileWriter):
             raise ValueError(error_msg)
 
         if is_s3_filepath(output_path):
-            wr.s3.to_json(
-                df_out,
-                output_path,
-                orient="records",
-                lines=True,
-                dataset=True,
-                mode=mode,
-                **kwargs,
-            )
+            if single_file:
+                wr.w3.to_json(df_out, output_path, **kwargs)
+            else:
+                wr.s3.to_json(
+                    df_out,
+                    output_path,
+                    orient="records",
+                    lines=True,
+                    dataset=True,
+                    mode=mode,
+                    **kwargs,
+                )
         else:
             dirs = os.path.dirname(output_path)
             if dirs:
