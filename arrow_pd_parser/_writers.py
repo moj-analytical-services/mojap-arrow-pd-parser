@@ -10,8 +10,6 @@ import smart_open
 import pandas as pd
 import numpy as np
 
-import awswrangler as wr
-
 import pyarrow as pa
 from pyarrow import parquet as pq
 

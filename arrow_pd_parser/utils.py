@@ -113,4 +113,3 @@ def human_to_bytes(memory: str) -> int:
         x = float(m.group(1))
         m = mult[m.group(3)[0].lower()]
         return int(x * m)
-

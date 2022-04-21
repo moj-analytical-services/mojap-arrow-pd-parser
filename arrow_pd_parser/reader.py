@@ -33,10 +33,10 @@ def read(
 
     If chunksize is not None, will return an Iterator of dataframes.
     If chunksize is an int, each dataframe will have chunksize rows.
-    chunksize can be also set to a string representing memory, e.g. "2GB", 
-    "500 MB". Chunksize will then be set to the number of rows that will fill 
+    chunksize can be also set to a string representing memory, e.g. "2GB",
+    "500 MB". Chunksize will then be set to the number of rows that will fill
     the given memory. Do not set this value to the amount of memory available,
-    there will need to be plenty of overhead for reading and writing the data 
+    there will need to be plenty of overhead for reading and writing the data
     format.
 
     See csv.read(), json.read() or parquet.read() for docsctring on
@@ -54,7 +54,7 @@ def read(
         test_reader = get_default_reader_from_file_format(
             file_format=file_format, chunksize=1000
         )
-        df = next(test_reader.read())
+        df = next(test_reader.read(input_path))
         bytes_per_1000 = df.memory_usage(deep=True).sum()
         chunksize = int(1000 * max_bytes / bytes_per_1000)
 
