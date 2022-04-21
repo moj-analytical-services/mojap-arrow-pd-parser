@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import datetime
 import os
 import io
+import smart_open
 
 import pandas as pd
 import numpy as np
@@ -42,6 +43,24 @@ class DataFrameFileWriter(ABC):
     pd_timestamp_type: str = "datetime_object"
     bool_map: Dict = None
 
+    @abstractmethod
+    def write(
+        self,
+        df: Union[pd.DataFrame, Iterable[pd.DataFrame]],
+        output_path: Union[IO, str],
+        metadata: Union[Metadata, dict] = None,
+        **kwargs,
+    ) -> None:
+        """writes a DataFrame or iterator of DataFrames to the output file
+        output_path: File to write either local or S3.
+        metadata: A metadata object or dict to cast the dataframe to before writing
+          (not necessarily needed for writing especially for CSV)
+        **kwargs (optional): Additional kwargs are passed to write method."""
+        return
+
+
+@dataclass
+class DataFrameTextFileWriter(DataFrameFileWriter):
     def write(
         self,
         df: Union[pd.DataFrame, Iterable[pd.DataFrame]],
@@ -55,42 +74,40 @@ class DataFrameFileWriter(ABC):
           (not necessarily needed for writing especially for CSV)
         **kwargs (optional): Additional kwargs are passed to write method."""
 
-        if "mode" in kwargs:
-            mode = kwargs["mode"]
-            del kwargs["mode"]
-        else:
-            mode = "overwrite"
+        if kwargs.get("mode", "w") != "w":
+            raise ValueError("Only writing is supported, so 'mode' needs to equal 'w'")
 
         if isinstance(df, pd.DataFrame):
-            # When writing a single dataframe as an overwrite, ensure that
-            # a single file is produced when writing to S3, matching the
-            # behaviour when writing to a file (Note: needed for s3_data_packer)
-            single_file = mode == "overwrite"
-            self._write(
-                df, output_path, metadata, mode=mode, single_file=single_file, **kwargs
-            )
-        else:
-            # Write first chunk from iterable using selected mode
-            self._write(next(df), output_path, metadata, mode=mode, **kwargs)
-            # then append the rest
+            # Convert single dataframe to iterator
+            df = iter([df])
+
+        # Create directory, if needed
+        if not is_s3_filepath(output_path):
+            dirs = os.path.dirname(output_path)
+            if dirs:
+                os.makedirs(dirs, exist_ok=True)
+
+        with smart_open.open(output_path, "w") as f:
+            # Write first chunk from iterable
+            self._write(next(df), f, metadata, first_chunk=True, **kwargs)
+            # then write the rest
             for chunk in df:
-                self._write(chunk, output_path, metadata, mode="append", **kwargs)
+                self._write(chunk, f, metadata, first_chunk=False, **kwargs)
 
     @abstractmethod
     def _write(
+        self,
         df: pd.DataFrame,
-        output_path: Union[IO, str],
+        f: io.TextIOWrapper,
         metadata: Union[Metadata, dict] = None,
-        mode: str = "overwrite",
-        single_file: bool = False,  # write one file rather than dataset directory
+        first_chunk: bool = True,
         **kwargs,
-    ) -> None:
-        """abstract method to write a Dataframe to the output file using
-        the specific output"""
+    ):
+        return
 
 
 @dataclass
-class PandasCsvWriter(DataFrameFileWriter):
+class PandasCsvWriter(DataFrameTextFileWriter):
     """write for CSV files"""
 
     drop_index = True
@@ -98,19 +115,20 @@ class PandasCsvWriter(DataFrameFileWriter):
     def _write(
         self,
         df: pd.DataFrame,
-        output_path: Union[IO, str],
+        f: io.TextIOWrapper,
         metadata: Union[Metadata, dict] = None,
-        mode: str = "overwrite",
-        single_file: bool = False,
+        first_chunk: bool = True,
         **kwargs,
     ):
         """
         Writes a pandas DataFrame to CSV
-        output_path: File to write either local or S3.
+        f: File-like object to write either local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
           (not necessarily needed for writing especially for CSV)
-        **kwargs (optional): Additional kwargs are passed to pandas or awswrangler
-            to_csv method.
+        first_chunk: Is this the first part of the dataframe, potentially
+          needing headers?
+        **kwargs (optional): Additional kwargs are passed to pandas to_csv
+            method.
         """
         if self.copy:
             df_out = df.copy()
@@ -137,32 +155,21 @@ class PandasCsvWriter(DataFrameFileWriter):
         else:
             kwargs["index"] = not self.drop_index
 
-        if is_s3_filepath(output_path):
-            if single_file:
-                wr.s3.to_csv(df_out, output_path, **kwargs)
-            else:
-                wr.s3.to_csv(df_out, output_path, dataset=True, mode=mode, **kwargs)
-        else:
-            dirs = os.path.dirname(output_path)
-            if dirs:
-                os.makedirs(dirs, exist_ok=True)
-            write_mode = "a" if mode == "append" else "w"
-            # Don't write header row again when appending
-            write_headers = write_mode != "a"
-            df_out.to_csv(output_path, header=write_headers, mode=write_mode, **kwargs)
+        with io.StringIO() as out_io:
+            df_out.to_csv(out_io, header=first_chunk, **kwargs)
+            f.write(out_io.getvalue())
 
 
 @dataclass
-class PandasJsonWriter(DataFrameFileWriter):
+class PandasJsonWriter(DataFrameTextFileWriter):
     """write for JSON files"""
 
     def _write(
         self,
         df: pd.DataFrame,
-        output_path: Union[IO, str],
+        f: io.TextIOWrapper,
         metadata: Union[Metadata, dict] = None,
-        mode: str = "overwrite",
-        single_file: bool = False,
+        first_chunk: bool = True,
         **kwargs,
     ):
         """
@@ -223,32 +230,9 @@ class PandasJsonWriter(DataFrameFileWriter):
             )
             raise ValueError(error_msg)
 
-        if is_s3_filepath(output_path):
-            if single_file:
-                wr.s3.to_json(
-                    df_out, output_path, orient="records", lines=True, **kwargs
-                )
-            else:
-                wr.s3.to_json(
-                    df_out,
-                    output_path,
-                    orient="records",
-                    lines=True,
-                    dataset=True,
-                    mode=mode,
-                    **kwargs,
-                )
-        else:
-            dirs = os.path.dirname(output_path)
-            if dirs:
-                os.makedirs(dirs, exist_ok=True)
-
-            if mode == "append":
-                with io.StringIO() as df_json, open(output_path, "a") as f:
-                    df_out.to_json(df_json, orient="records", lines=True, **kwargs)
-                    f.write(df_json.getvalue())
-            else:
-                df_out.to_json(output_path, orient="records", lines=True, **kwargs)
+        with io.StringIO() as out_io:
+            df_out.to_json(out_io, orient="records", lines=True, **kwargs)
+            f.write(out_io.getvalue())
 
 
 @dataclass
@@ -307,38 +291,19 @@ class ArrowParquetWriter(DataFrameFileWriter):
         else:
             arrow_schema = None
 
-        chunked = not isinstance(df, pd.DataFrame)
-        table = (
-            pa.Table.from_pandas(next(df), schema=arrow_schema)
-            if chunked
-            else pa.Table.from_pandas(df, schema=arrow_schema)
-        )
+        if isinstance(df, pd.DataFrame):
+            # Convert single dataframe to iterator
+            df = iter([df])
+
+        table = pa.Table.from_pandas(next(df), schema=arrow_schema)
+
         with pq.ParquetWriter(
             output_path, schema=table.schema, **kwargs
         ) as parquet_writer:
-            self._write(table, parquet_writer)
-            if chunked:
-                for chunk in df:
-                    self._write(
-                        pa.Table.from_pandas(chunk, arrow_schema),
-                        parquet_writer,
-                    )
-
-    def _write(
-        self,
-        table: pa.Table,
-        parquet_writer: pq.ParquetWriter,
-        **kwargs,
-    ):
-        """
-        Writes a pandas DataFrame to CSV
-        parquet_writer: pyarrow.parquet.ParquetWriter to write this and
-            potentially other DataFrames
-        **kwargs (optional): Additional kwargs are passed to
-          pyarrow.parquet.write_table
-        """
-
-        parquet_writer.write_table(table, **kwargs)
+            parquet_writer.write_table(table)
+            for chunk in df:
+                table = pa.Table.from_pandas(chunk, schema=arrow_schema)
+                parquet_writer.write_table(table)
 
 
 def get_default_writer_from_file_format(
