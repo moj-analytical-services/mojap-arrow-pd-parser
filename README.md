@@ -244,12 +244,12 @@ df.my_datetime.dtype # dtype('<M8[ns]')
 
 #### Reading and writing large datasets
 
-Datasets that are too large to fit into memory can be read in chunks. If the `chunksize` parameter is given to `reader.read` then an iterator of dataframes, each containing `chunksize` rows, is returned rather than a single dataframe. The `writer.write` function can use these iterators instead of a dataframe. 
+Datasets that are too large to fit into memory can be read in chunks. If the `chunksize` parameter is given to `reader.read` then an iterator of dataframes is returned rather than a single dataframe. `chunksize` can be an integer indicating the number of rows each chunk contains, or a string indicating the amount of memory each chunk should fill, e.g. "1 GB". Note that the memory size should not fill available memory as some overhead is required for reading and writing. The `writer.write` function can then use these iterators instead of a dataframe. 
 
 ```python
 from arrow_pd_parser import reader, writer
 
-df_iter = reader.read("s3://my_bucket/csv_data/my_table.csv")
+df_iter = reader.read("s3://my_bucket/csv_data/my_table.csv", chunksize=10000)
 writer.write(df_iter, "s3://my_bucket/parquet_data/my_table.parquet")
 ```
 
@@ -262,7 +262,7 @@ def transform(df):
     # do something
     return df
 
-df_iter = reader.read("s3://my_bucket/csv_data/my_table.csv")
+df_iter = reader.read("s3://my_bucket/csv_data/my_table.csv", chunksize="500MB")
 # Using a generator comprehension
 df_transformed_iter = (transform(df) for df in df_iter)
 writer.write(df_transformed_iter, "s3://my_bucket/parquet_data/my_transformed_table.parquet")
