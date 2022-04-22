@@ -153,9 +153,7 @@ class PandasCsvWriter(DataFrameTextFileWriter):
         else:
             kwargs["index"] = not self.drop_index
 
-        with io.StringIO() as out_io:
-            df_out.to_csv(out_io, header=first_chunk, **kwargs)
-            f.write(out_io.getvalue())
+        df_out.to_csv(f, header=first_chunk, **kwargs)
 
 
 @dataclass
@@ -228,9 +226,7 @@ class PandasJsonWriter(DataFrameTextFileWriter):
             )
             raise ValueError(error_msg)
 
-        with io.StringIO() as out_io:
-            df_out.to_json(out_io, orient="records", lines=True, **kwargs)
-            f.write(out_io.getvalue())
+        df_out.to_json(f, orient="records", lines=True, **kwargs)
 
 
 @dataclass
