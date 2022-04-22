@@ -106,10 +106,15 @@ def human_to_bytes(memory: str) -> int:
     the number of bytes in memory
     """
 
-    mult = {"k": 10**3, "m": 10**6, "g": 10**9, "t": 10**12}
+    mult = {"b": 1, "k": 10**3, "m": 10**6, "g": 10**9, "t": 10**12}
 
     m = re.match(r"(\d+(.\d+)?)\s*([kKmMgGtT]?B)", memory)
     if m:
         x = float(m.group(1))
         m = mult[m.group(3)[0].lower()]
         return int(x * m)
+    else:
+        raise ValueError(
+            f"{memory} is not a valid memory format. "
+            "This should be of the form e.g '100 MB', '2.5GB'."
+        )
