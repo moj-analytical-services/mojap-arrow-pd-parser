@@ -1,11 +1,11 @@
-from mojap_metadata.metadata.metadata import Metadata
-from mojap_metadata.converters.arrow_converter import ArrowConverter
+from typing import IO, Union
+
 import pyarrow as pa
+from mojap_metadata.converters.arrow_converter import ArrowConverter
+from mojap_metadata.metadata.metadata import Metadata
 from pyarrow import csv, json, parquet
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
-
-from typing import Union, IO
 
 
 def _get_arrow_schema(schema: Union[pa.schema, Metadata, dict]):
@@ -253,7 +253,6 @@ def pa_read_parquet(
     expect_full_schema: bool = True,
     **kwargs,
 ):
-
     """
     reads parquet file to in memory arrow table
     Args:

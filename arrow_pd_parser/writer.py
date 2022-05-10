@@ -1,4 +1,4 @@
-from typing import Union, Iterator
+from typing import Iterator, Union
 
 import pandas as pd
 from mojap_metadata import Metadata
@@ -9,7 +9,7 @@ from arrow_pd_parser._writers import (
     PandasJsonWriter,
     get_default_writer_from_file_format,
 )
-from arrow_pd_parser.utils import infer_file_format, FileFormat
+from arrow_pd_parser.utils import FileFormat, infer_file_format
 
 
 def write(

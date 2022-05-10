@@ -1,13 +1,13 @@
 import datetime
 import warnings
+from typing import IO, Union
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-
 from mojap_metadata import Metadata
+
 from arrow_pd_parser._arrow_parsers import _get_arrow_schema
-from typing import Union, IO
 
 
 def pd_to_csv(

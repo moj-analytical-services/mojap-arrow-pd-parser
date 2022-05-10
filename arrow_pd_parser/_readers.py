@@ -1,26 +1,25 @@
-from abc import ABC, abstractmethod
-from typing import List, Union, Dict, IO, Iterable, Optional
 import warnings
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import IO, Dict, Iterable, Optional, Union
 
-import pandas as pd
 import awswrangler as wr
+import pandas as pd
 import pyarrow as pa
-from pyarrow import parquet as pq
-from pyarrow import dataset as ds
-
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
+from pyarrow import dataset as ds
+from pyarrow import parquet as pq
 
-from arrow_pd_parser.utils import (
-    FileFormat,
-    is_s3_filepath,
-    EngineNotImplementedError,
-    validate_and_enrich_metadata,
-)
+from arrow_pd_parser._arrow_parsers import cast_arrow_table_to_schema
 from arrow_pd_parser.caster import cast_pandas_table_to_schema
 from arrow_pd_parser.pa_pd import arrow_to_pandas
-from arrow_pd_parser._arrow_parsers import cast_arrow_table_to_schema
+from arrow_pd_parser.utils import (
+    EngineNotImplementedError,
+    FileFormat,
+    is_s3_filepath,
+    validate_and_enrich_metadata,
+)
 
 
 @dataclass
@@ -30,8 +29,8 @@ class DataFrameFileReader(ABC):
     Should just have a read method returning a pandas DataFrame.
     """
 
-    ignore_columns: List = None
-    drop_columns: List = None
+    ignore_columns: list[str] = field(default_factory=list)
+    drop_columns: list[str] = field(default_factory=list)
     pd_integer: bool = True
     pd_string: bool = True
     pd_boolean: bool = True
@@ -43,7 +42,9 @@ class DataFrameFileReader(ABC):
     def read(
         self, input_path: str, metadata: Union[Metadata, dict] = None, **kwargs
     ) -> pd.DataFrame:
-        """reads the file into pandas DataFrame"""
+        """
+        Reads the file into pandas DataFrame
+        """
 
     def _cast_pandas_table_to_schema(
         self, df: pd.DataFrame, metadata: Union[Metadata, dict]
@@ -61,12 +62,15 @@ class DataFrameFileReader(ABC):
             pd_timestamp_type=self.pd_timestamp_type,
             bool_map=self.bool_map,
         )
+
         return df
 
 
 @dataclass
 class PandasCsvReader(DataFrameFileReader):
-    """reader for CSV files"""
+    """
+    Reader for CSV files
+    """
 
     def read(
         self,
@@ -105,6 +109,7 @@ class PandasCsvReader(DataFrameFileReader):
             )
         else:
             df = self._cast_pandas_table_to_schema(df, metadata)
+
         return df
 
 
@@ -156,7 +161,9 @@ class PandasJsonReader(DataFrameFileReader):
 
 @dataclass
 class ArrowParquetReader(DataFrameFileReader):
-    """reader for parquet files"""
+    """
+    Reader for parquet files
+    """
 
     expect_full_schema: bool = True
 
@@ -211,7 +218,9 @@ class DataFrameFileReaderIterator(DataFrameFileReader):
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
-        """reads the file into pandas DataFrame"""
+        """
+        Reads the file into pandas DataFrame
+        """
 
 
 @dataclass
@@ -258,12 +267,15 @@ class PandasCsvReaderIterator(DataFrameFileReaderIterator):
                 )
             else:
                 df = self._cast_pandas_table_to_schema(df, metadata)
+
             yield df
 
 
 @dataclass
 class PandasJsonReaderIterator(DataFrameFileReaderIterator):
-    """reader for json files"""
+    """
+    Reader for json files
+    """
 
     def read(
         self,
@@ -312,7 +324,9 @@ class PandasJsonReaderIterator(DataFrameFileReaderIterator):
 
 @dataclass
 class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
-    """reader for parquet files"""
+    """
+    Reader for parquet files
+    """
 
     expect_full_schema: bool = True
 

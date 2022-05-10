@@ -1,25 +1,23 @@
-from abc import ABC, abstractmethod
-from typing import List, Union, Dict, IO, Iterable
-import warnings
-from dataclasses import dataclass
 import datetime
-import os
 import io
-import smart_open
+import os
+import warnings
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import IO, Dict, Iterable, Union
 
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 import pyarrow as pa
-from pyarrow import parquet as pq
-
+import smart_open
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
+from pyarrow import parquet as pq
 
 from arrow_pd_parser.utils import (
+    EngineNotImplementedError,
     FileFormat,
     is_s3_filepath,
-    EngineNotImplementedError,
     validate_and_enrich_metadata,
 )
 
@@ -32,8 +30,8 @@ class DataFrameFileWriter(ABC):
     """
 
     copy = True
-    ignore_columns: List = None
-    drop_columns: List = None
+    ignore_columns: list[str] = field(default_factory=list)
+    drop_columns: list[str] = field(default_factory=list)
     pd_integer: bool = True
     pd_string: bool = True
     pd_boolean: bool = True
@@ -49,11 +47,13 @@ class DataFrameFileWriter(ABC):
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> None:
-        """writes a DataFrame or iterator of DataFrames to the output file
+        """
+        Writes a DataFrame or iterator of DataFrames to the output file
         output_path: File to write either local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
           (not necessarily needed for writing especially for CSV)
-        **kwargs (optional): Additional kwargs are passed to write method."""
+        **kwargs (optional): Additional kwargs are passed to write method.
+        """
         return
 
 
@@ -66,11 +66,13 @@ class DataFrameTextFileWriter(DataFrameFileWriter):
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> None:
-        """writes a DataFrame or iterator of DataFrames to the output file
+        """
+        Writes a DataFrame or iterator of DataFrames to the output file
         output_path: File to write either local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
           (not necessarily needed for writing especially for CSV)
-        **kwargs (optional): Additional kwargs are passed to write method."""
+        **kwargs (optional): Additional kwargs are passed to write method.
+        """
 
         if kwargs.get("mode", "w") != "w":
             raise ValueError("Only writing is supported, so 'mode' needs to equal 'w'")
@@ -231,7 +233,9 @@ class PandasJsonWriter(DataFrameTextFileWriter):
 
 @dataclass
 class ArrowParquetWriter(DataFrameFileWriter):
-    """write for Parquet files"""
+    """
+    write for Parquet files
+    """
 
     version: str = "2.0"
     compression: str = "snappy"

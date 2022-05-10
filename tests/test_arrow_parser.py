@@ -1,13 +1,13 @@
-import pytest
-import pyarrow as pa
 import pandas as pd
-from pandas.testing import assert_frame_equal
+import pyarrow as pa
+import pytest
 from arrow_pd_parser._arrow_parsers import (
+    cast_arrow_table_to_schema,
     pa_read_csv_to_pandas,
     pa_read_json_to_pandas,
-    cast_arrow_table_to_schema,
     update_existing_schema,
 )
+from pandas.testing import assert_frame_equal
 
 
 def test_file_reader_returns_df():
