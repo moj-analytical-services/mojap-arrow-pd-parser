@@ -224,7 +224,7 @@ pd.Timestamp.min # Timestamp('1677-09-22 00:12:43.145225')
 pd.Timestamp.max # Timestamp('2262-04-11 23:47:16.854775807')
 ```
 
-Whereas Spark 3.0 (for example) allows timestamps from `0001-01-01 00:00:00` to `9999-12-31 23:59:59.999999` ([source](https://databricks.com/blog/2020/07/22/a-comprehensive-look-at-dates-and-timestamps-in-apache-spark-3-0.html)). By default we do not allow Timestamps for this reason instead we use the python native datetime class as default for our types (wrapped in a Pandas object column type). Users can specify other Pandas date/timestamp using the `pd_timestamp_type` parameter which can either be `object` (default), `pd_timestamp` or `pd_period`. 
+Whereas Spark 3.0 (for example) allows timestamps from `0001-01-01 00:00:00` to `9999-12-31 23:59:59.999999` ([source](https://databricks.com/blog/2020/07/22/a-comprehensive-look-at-dates-and-timestamps-in-apache-spark-3-0.html)). By default we do not allow Timestamps for this reason instead we use the python native datetime class as default for our types (wrapped in a Pandas object column type). Users can specify other Pandas date/timestamp using the `pd_timestamp_type` parameter which can either be `object` (default), `pd_timestamp` or `pd_period`.
 
 When setting `pd_timestamp_type=pd_period` pd_arrow_parser will identify the correct pandas period resolution based on the arrow column type.
 
@@ -244,7 +244,7 @@ df.my_datetime.dtype # dtype('<M8[ns]')
 
 #### Reading and writing large datasets
 
-Datasets that are too large to fit into memory can be read in chunks. If the `chunksize` parameter is given to `reader.read` then an iterator of dataframes is returned rather than a single dataframe. `chunksize` can be an integer indicating the number of rows each chunk contains, or a string indicating the amount of memory each chunk should fill, e.g. "1 GB". Note that the memory size should not fill available memory as some overhead is required for reading and writing. The `writer.write` function can then use these iterators instead of a dataframe. 
+Datasets that are too large to fit into memory can be read in chunks. If the `chunksize` parameter is given to `reader.read` then an iterator of dataframes is returned rather than a single dataframe. `chunksize` can be an integer indicating the number of rows each chunk contains, or a string indicating the amount of memory each chunk should fill, e.g. "1 GB". Note that the memory size should not fill available memory as some overhead is required for reading and writing. The `writer.write` function can then use these iterators instead of a dataframe.
 
 ```python
 from arrow_pd_parser import reader, writer
@@ -267,4 +267,3 @@ df_iter = reader.read("s3://my_bucket/csv_data/my_table.csv", chunksize="500MB")
 df_transformed_iter = (transform(df) for df in df_iter)
 writer.write(df_transformed_iter, "s3://my_bucket/parquet_data/my_transformed_table.parquet")
 ```
-
