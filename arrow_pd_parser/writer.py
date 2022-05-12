@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Iterator
 
 import pandas as pd
 from mojap_metadata import Metadata
@@ -13,7 +13,7 @@ from arrow_pd_parser.utils import infer_file_format, FileFormat
 
 
 def write(
-    df: pd.DataFrame,
+    df: Union[pd.DataFrame, Iterator[pd.DataFrame]],
     output_path: str,
     metadata: Union[Metadata, dict] = None,
     file_format: Union[FileFormat, str] = None,

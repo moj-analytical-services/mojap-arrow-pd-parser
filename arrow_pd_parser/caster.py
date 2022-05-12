@@ -59,19 +59,16 @@ def _convert_str_to_datetime_obj_series(
     return s_new
 
 
-def _default_str_bool_mapper(s: str):
+def _default_str_bool_mapper(s: Union[str, int, float]) -> bool:
 
-    basic_map = {
-        "1": True,
-        "0": False,
-        "t": True,
-        "f": False,
-    }
-
-    if pd.isna(s) or not s:
+    basic_map = {"1": True, "0": False, "t": True, "f": False}
+    # In case bools are interpreted as numerics
+    s_str = str(s)
+    # Check for "truthiness" of string e.g. not 0 == True but not "0" == False
+    if pd.isna(s) or not s_str:
         return np.nan
     else:
-        return basic_map.get(s.lower()[0], np.nan)
+        return basic_map.get(s_str.lower()[0], np.nan)
 
 
 def _infer_bool_type(s: pd.Series):

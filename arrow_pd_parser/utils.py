@@ -3,6 +3,7 @@ from copy import deepcopy
 from enum import Enum, auto
 from typing import Union, IO
 from mojap_metadata import Metadata
+import re
 
 
 class FileFormatNotFound(Exception):
@@ -95,3 +96,25 @@ def validate_and_enrich_metadata(metadata: Union[Metadata, dict]) -> Metadata:
     m = deepcopy(m)
     m.set_col_type_category_from_types()
     return m
+
+
+def human_to_bytes(memory: str) -> int:
+    """Convert a human-readable representation of memory to bytes.
+    Argument:
+    memory: str - a human-readable amount of memory e.g. '20 GB' or '5MB'
+    Returns:
+    the number of bytes in memory
+    """
+
+    mult = {"b": 1, "k": 10**3, "m": 10**6, "g": 10**9, "t": 10**12}
+
+    m = re.match(r"(\d+(.\d+)?)\s*([kKmMgGtT]?B)", memory)
+    if m:
+        x = float(m.group(1))
+        m = mult[m.group(3)[0].lower()]
+        return int(x * m)
+    else:
+        raise ValueError(
+            f"{memory} is not a valid memory format. "
+            "This should be of the form e.g '100 MB', '2.5GB'."
+        )
