@@ -1,11 +1,9 @@
-import pytest
 import tempfile
 
-from pandas.testing import assert_frame_equal
-
+import pytest
 from arrow_pd_parser import reader, writer
 from arrow_pd_parser.utils import FileFormat
-
+from pandas.testing import assert_frame_equal
 
 all_formats = [FileFormat.CSV, FileFormat.JSON, FileFormat.PARQUET]
 
@@ -34,13 +32,25 @@ def test_round_trip(trip1_file_format, trip2_file_format):
     # Trip 1
     with tempfile.NamedTemporaryFile() as f:
         tmp_out_file1 = f.name
-    writer.write(orig_copy, tmp_out_file1, file_format=trip1_file_format, metadata=meta)
-    df_mid = reader.read(tmp_out_file1, file_format=trip1_file_format, metadata=meta)
+    writer.write(
+        df=orig_copy,
+        output_path=tmp_out_file1,
+        file_format=trip1_file_format,
+        metadata=meta,
+    )
+    df_mid = reader.read(
+        input_path=tmp_out_file1, file_format=trip1_file_format, metadata=meta
+    )
 
     # Trip 2
     with tempfile.NamedTemporaryFile() as f:
         tmp_out_file2 = f.name
-    writer.write(df_mid, tmp_out_file2, file_format=trip2_file_format, metadata=meta)
+    writer.write(
+        df=df_mid,
+        output_path=tmp_out_file2,
+        file_format=trip2_file_format,
+        metadata=meta,
+    )
     final = reader.read(tmp_out_file2, file_format=trip2_file_format, metadata=meta)
 
     assert_frame_equal(original, final)
@@ -82,3 +92,9 @@ def test_round_trip_chunked(trip1_file_format, trip2_file_format):
     final = reader.read(tmp_out_file2, file_format=trip2_file_format, metadata=meta)
 
     assert_frame_equal(original, final)
+
+
+# Test that all engine writers produce the same read file (multiple writer engines as input, single reader engine equality)  # noqa: E501
+
+
+# Test that all engine readers produce the same read file (single writer engine as input, multiple reader engines equality)  # noqa: E501

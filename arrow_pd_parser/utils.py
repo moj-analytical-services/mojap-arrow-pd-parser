@@ -22,6 +22,10 @@ class FileFormat(Enum):
     CSV = auto()
 
     @classmethod
+    def __contains__(cls, item):
+        return item in cls.__members__.values()
+
+    @classmethod
     def from_string(cls, string: str):
         s = string.strip().upper()
 
@@ -59,7 +63,7 @@ def infer_file_format_from_filepath(input_file) -> FileFormat:
     if file_format:
         return file_format
     elif len(Path(filename).suffixes) > 1:
-        surplus_suffixes = ["tar", "gz", "zip", "gzip"]
+        surplus_suffixes = ["tar", "gz", "zip", "gzip", "brotli"]
         exts = [suffix.strip(".").lower() for suffix in Path(filename).suffixes]
         exts = [suffix for suffix in exts if suffix not in surplus_suffixes]
         ext = exts[-1]

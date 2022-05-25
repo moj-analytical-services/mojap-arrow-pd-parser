@@ -21,6 +21,7 @@ test_file_types = [
     ("SNAPPY.PARQUET", FileFormat.PARQUET),
 ]
 
+# Add file name to each test extension
 test_filenames = [(f"file.{x[0]}", x[1]) for x in test_file_types]
 
 
@@ -111,6 +112,7 @@ class Test_infer_file_format_with_meta_conflict:
         actual = infer_file_format("from_parquet.csv", None)
         assert actual == FileFormat.CSV
 
+    def test_infer_from_conflict_name_with_dots(self):
         actual_dots = infer_file_format("from.original.parquet.file.csv", None)
         assert actual_dots == FileFormat.CSV
 

@@ -12,7 +12,6 @@ import pyarrow as pa
 import smart_open
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
-from pyarrow import parquet as pq
 
 from arrow_pd_parser.utils import (
     EngineNotImplementedError,
@@ -29,7 +28,8 @@ class DataFrameFileWriter(ABC):
     Should just have a write method.
     """
 
-    copy = True
+    compression: str = None
+    copy: bool = True
     ignore_columns: list[str] = field(default_factory=list)
     drop_columns: list[str] = field(default_factory=list)
     pd_integer: bool = True
@@ -108,7 +108,7 @@ class DataFrameTextFileWriter(DataFrameFileWriter):
 
 @dataclass
 class PandasCsvWriter(DataFrameTextFileWriter):
-    """write for CSV files"""
+    """Write a DataFrame to CSV file using pandas."""
 
     drop_index = True
 
@@ -160,7 +160,7 @@ class PandasCsvWriter(DataFrameTextFileWriter):
 
 @dataclass
 class PandasJsonWriter(DataFrameTextFileWriter):
-    """write for JSON files"""
+    """Write to JSON file using pandas"""
 
     def _write(
         self,
@@ -171,12 +171,12 @@ class PandasJsonWriter(DataFrameTextFileWriter):
         **kwargs,
     ):
         """
-        Writes a pandas DataFrame to CSV
-        output_path: File to read either local or S3.
+        Writes a pandas DataFrame to JSON
+        output_path: File to write either to local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
-          (not necessarily needed for writing especially for CSV)
+          (not necessarily needed for writing)
         **kwargs (optional): Additional kwargs are passed to pandas or awswrangler
-            to_csv method.
+            to_json method.
         """
 
         if self.copy:
@@ -205,12 +205,6 @@ class PandasJsonWriter(DataFrameTextFileWriter):
                 # Convert pd_timestamp string 'NaT' to NaN so PyArrow can read them
                 df_out[col].replace("NaT", np.nan, regex=False, inplace=True)
 
-        for col in df_out.columns:
-            # Convert period columns to strings so they're exported in a way
-            # Arrow can read
-            if pd.api.types.is_period_dtype(df_out[col]):
-                df_out[col] = df_out[col].dt.strftime("%Y-%m-%d %H:%M:%S")
-
         if kwargs.get("orient", "records") != "records":
             error_msg = (
                 "You are not allowed to specify orient in your kwargs "
@@ -232,13 +226,10 @@ class PandasJsonWriter(DataFrameTextFileWriter):
 
 
 @dataclass
-class ArrowParquetWriter(DataFrameFileWriter):
+class ArrowBaseWriter(DataFrameFileWriter):
     """
-    write for Parquet files
+    Base writer class for arrow engine writers.
     """
-
-    version: str = "2.0"
-    compression: str = "snappy"
 
     def write(
         self,
@@ -248,19 +239,19 @@ class ArrowParquetWriter(DataFrameFileWriter):
         **kwargs,
     ) -> None:
         """
-        Writes a pandas DataFrame to CSV
-        output_path: File to read either local or S3.
+        Writes a pandas DataFrame
+        output_path: File to write to either local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
-          (not necessarily needed for writing especially for CSV)
+          (not necessarily needed for writing)
         **kwargs (optional): Additional kwargs are passed to
-          pyarrow.parquet.write_table
+          pyarrow writers
         """
 
         if kwargs is None:
             kwargs = {}
 
         kwargs["version"] = kwargs.get("version", self.version)
-        kwargs["compression"] = kwargs.get("compression", self.compression)
+        kwargs["compression"] = kwargs.get("compression", self.compression).upper()
 
         if kwargs["version"] != self.version:
             warning_msg = (
@@ -270,7 +261,7 @@ class ArrowParquetWriter(DataFrameFileWriter):
             )
             warnings.warn(warning_msg)
 
-        if kwargs["compression"] != self.compression:
+        if kwargs["compression"].casefold() != self.compression.casefold():
             warning_msg = (
                 f"Your kwargs for compression ({kwargs.get('compression')}) mismatches "
                 f"the writer's settings self.compression ({self.compression}). "
@@ -278,7 +269,7 @@ class ArrowParquetWriter(DataFrameFileWriter):
             )
             warnings.warn(warning_msg)
 
-        if not output_path.startswith("s3://"):
+        if not is_s3_filepath(output_path):
             dirs = os.path.dirname(output_path)
             if dirs:
                 os.makedirs(dirs, exist_ok=True)
@@ -293,10 +284,41 @@ class ArrowParquetWriter(DataFrameFileWriter):
             # Convert single dataframe to iterator
             df = iter([df])
 
+        #######
+
+        self._write(df, output_path, arrow_schema, **kwargs)
+
+    @abstractmethod
+    def _write(
+        self,
+        df: Iterable[pd.DataFrame],
+        output_path: Union[IO, str],
+        arrow_schema: pa.Schema = None,
+        **kwargs,
+    ):
+        return
+
+
+@dataclass
+class ArrowParquetWriter(ArrowBaseWriter):
+    """Writer for Parquet files using pyarrow."""
+
+    # TODO limit to valid compression options #####
+
+    compression: str = "SNAPPY"
+    version: str = "2.6"
+
+    def _write(
+        self,
+        df: Iterable[pd.DataFrame],
+        output_path: Union[IO, str],
+        arrow_schema: pa.Schema = None,
+        **kwargs,
+    ):
         table = pa.Table.from_pandas(next(df), schema=arrow_schema)
 
-        with pq.ParquetWriter(
-            output_path, schema=table.schema, **kwargs
+        with pa.parquet.ParquetWriter(
+            where=output_path, schema=table.schema, **kwargs
         ) as parquet_writer:
             parquet_writer.write_table(table)
             for chunk in df:
@@ -304,29 +326,124 @@ class ArrowParquetWriter(DataFrameFileWriter):
                 parquet_writer.write_table(table)
 
 
-def get_default_writer_from_file_format(
+# @dataclass
+# class ArrowCsvWriter(DataFrameFileWriter):
+#     """Writer for csv files using pyarrow."""
+
+#     preserve_index = False
+
+#     def _write(
+#         self,
+#         df: Iterable[pd.DataFrame],
+#         output_path: Union[IO, str],
+#         arrow_schema: pa.Schema = None,
+#         **kwargs,
+#     ):
+
+#         # for col in df_out.columns:
+#         #     # Convert period columns to strings so they're exported in a way
+#         #     # Arrow can read
+#         #     if pd.api.types.is_period_dtype(df_out[col]):
+#         #         df_out[col] = df_out[col].dt.strftime("%Y-%m-%d %H:%M:%S")
+
+#         # with smart_open.open(output_path, "w") as f:
+#         #     # Write first chunk from iterable
+#         #     self._write(next(df), f, metadata, first_chunk=True, **kwargs)
+#         #     # then write the rest
+#         #     for chunk in df:
+#         #         self._write(chunk, f, metadata, first_chunk=False, **kwargs)
+
+#         kwargs_index = kwargs.get("index", (self.preserve_index))
+#         if kwargs_index != (self.preserve_index):
+#             warning_msg = (
+#                 f"Your kwargs for index ({kwargs_index}) mismatches the writer's "
+#                 f"settings self.preserve_index ({self.preserve_index}). "
+#                 "In this instance kwargs supersedes the writer settings."
+#             )
+#             warnings.warn(warning_msg)
+#         else:
+#             kwargs["index"] = self.preserve_index
+
+#         ## Need a test to ensure writing to local, and to S3 creates the same
+#         ## folder/file structure as with PandasCsvWriter
+#         table = pa.Table.from_pandas(
+#             next(df), schema=arrow_schema, preserve_index=self.preserve_index
+#         )
+
+#         with pa.csv.CSVWriter(
+#             sink=output_path, schema=table.schema, **kwargs
+#         ) as csv_writer:
+#             csv_writer.write_table(table)
+#             for chunk in df:
+#                 table = pa.Table.from_pandas(chunk, schema=arrow_schema)
+#                 csv_writer.write_table(table)
+
+
+@dataclass
+class ArrowCsvWriter(PandasCsvWriter):
+    """Use pandas engine choice to write csv files using pyarrow."""
+
+    def arrow_write(self, **kwargs):
+        self._write(writer_engine="pyarrow", **kwargs)
+
+
+def get_writer_for_file_format(
     file_format: Union[FileFormat, str],
-    engine: str = None,
+    writer_engine: str = None,
 ) -> DataFrameFileWriter:
+
     # Convert to enum
     if isinstance(file_format, str):
         file_format = FileFormat.from_string(file_format)
 
-    if engine is not None:
-        raise EngineNotImplementedError(
-            "We plan to support engine choice in the future. "
-            "For now we only support one engine per file type. "
-            "CSV: Pandas, JSON: Pandas, Parquet: Arrow"
-        )
+    implemented_engines = ["pandas", "arrow"]
+    default_engines = {
+        FileFormat.CSV: "pandas",
+        FileFormat.JSON: "pandas",
+        FileFormat.PARQUET: "arrow",
+    }
+    writers_dict = {
+        "pandas": {
+            FileFormat.CSV: PandasCsvWriter(),
+            FileFormat.JSON: PandasJsonWriter(),
+        },
+        "arrow": {
+            FileFormat.CSV: ArrowCsvWriter(),
+            FileFormat.PARQUET: ArrowParquetWriter(),
+        },
+    }
 
-    # Get writer
-    if file_format == FileFormat.CSV:
-        writer = PandasCsvWriter()
-    elif file_format == FileFormat.JSON:
-        writer = PandasJsonWriter()
-    elif file_format == FileFormat.PARQUET:
-        writer = ArrowParquetWriter()
-    else:
+    if file_format not in FileFormat:
         raise ValueError(f"Unsupported file_format {file_format}")
+
+    default_engine = default_engines[file_format]
+    default_writer = writers_dict[default_engine][file_format]
+
+    if writer_engine is None:
+        writer = default_writer
+
+    elif writer_engine.casefold() in implemented_engines:
+        writers_for_format = writers_dict[writer_engine]
+        try:
+            writer = writers_for_format[file_format]
+        except KeyError:
+            raise KeyError(
+                f"""
+                {writer_engine} is not currently supported for the {str(file_format).split('.')[-1].upper()} format.
+                This {str(file_format).split('.')[-1].upper()} file will use {default_engine}.
+                """  # noqa: E501
+            )
+
+    elif writer_engine.casefold() not in implemented_engines:
+        raise EngineNotImplementedError(
+            f"""
+            {writer_engine} is not currently supported.
+            The default for {str(file_format).split('.')[-1].upper()} file type is {default_engine}.
+
+            We plan to support more engine choice in the future. For now we support
+            pyarrow ('arrow') and pandas engines. Default engines are:
+            CSV: {default_engines[FileFormat.CSV]}, JSON: {default_engines[FileFormat.JSON]}, Parquet: {default_engines[FileFormat.PARQUET]}.
+            """  # noqa: E501
+        )
 
     return writer

@@ -42,9 +42,7 @@ class DataFrameFileReader(ABC):
     def read(
         self, input_path: str, metadata: Union[Metadata, dict] = None, **kwargs
     ) -> pd.DataFrame:
-        """
-        Reads the file into pandas DataFrame
-        """
+        """Reads the file into pandas DataFrame."""
 
     def _cast_pandas_table_to_schema(
         self, df: pd.DataFrame, metadata: Union[Metadata, dict]
@@ -68,9 +66,7 @@ class DataFrameFileReader(ABC):
 
 @dataclass
 class PandasCsvReader(DataFrameFileReader):
-    """
-    Reader for CSV files
-    """
+    """Reader for csv files."""
 
     def read(
         self,
@@ -115,7 +111,7 @@ class PandasCsvReader(DataFrameFileReader):
 
 @dataclass
 class PandasJsonReader(DataFrameFileReader):
-    """reader for json files"""
+    """Reader for json files."""
 
     def read(
         self,
@@ -161,9 +157,7 @@ class PandasJsonReader(DataFrameFileReader):
 
 @dataclass
 class ArrowParquetReader(DataFrameFileReader):
-    """
-    Reader for parquet files
-    """
+    """Reader for parquet files."""
 
     expect_full_schema: bool = True
 
@@ -218,14 +212,12 @@ class DataFrameFileReaderIterator(DataFrameFileReader):
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
-        """
-        Reads the file into pandas DataFrame
-        """
+        """Reads the file into pandas DataFrame."""
 
 
 @dataclass
 class PandasCsvReaderIterator(DataFrameFileReaderIterator):
-    """reader for CSV files"""
+    """Reader for csv files."""
 
     def read(
         self,
@@ -273,9 +265,7 @@ class PandasCsvReaderIterator(DataFrameFileReaderIterator):
 
 @dataclass
 class PandasJsonReaderIterator(DataFrameFileReaderIterator):
-    """
-    Reader for json files
-    """
+    """Reader for json files."""
 
     def read(
         self,
@@ -324,9 +314,7 @@ class PandasJsonReaderIterator(DataFrameFileReaderIterator):
 
 @dataclass
 class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
-    """
-    Reader for parquet files
-    """
+    """Reader for parquet files."""
 
     expect_full_schema: bool = True
 
