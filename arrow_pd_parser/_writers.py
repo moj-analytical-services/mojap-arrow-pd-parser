@@ -24,7 +24,7 @@ from arrow_pd_parser.utils import (
 @dataclass
 class DataFrameFileWriter(ABC):
     """
-    Abstract class for writer functions used by writer API
+    Abstract class for writer functions used by writer API.
     Should just have a write method.
     """
 
@@ -326,62 +326,9 @@ class ArrowParquetWriter(ArrowBaseWriter):
                 parquet_writer.write_table(table)
 
 
-# @dataclass
-# class ArrowCsvWriter(DataFrameFileWriter):
-#     """Writer for csv files using pyarrow."""
-
-#     preserve_index = False
-
-#     def _write(
-#         self,
-#         df: Iterable[pd.DataFrame],
-#         output_path: Union[IO, str],
-#         arrow_schema: pa.Schema = None,
-#         **kwargs,
-#     ):
-
-#         # for col in df_out.columns:
-#         #     # Convert period columns to strings so they're exported in a way
-#         #     # Arrow can read
-#         #     if pd.api.types.is_period_dtype(df_out[col]):
-#         #         df_out[col] = df_out[col].dt.strftime("%Y-%m-%d %H:%M:%S")
-
-#         # with smart_open.open(output_path, "w") as f:
-#         #     # Write first chunk from iterable
-#         #     self._write(next(df), f, metadata, first_chunk=True, **kwargs)
-#         #     # then write the rest
-#         #     for chunk in df:
-#         #         self._write(chunk, f, metadata, first_chunk=False, **kwargs)
-
-#         kwargs_index = kwargs.get("index", (self.preserve_index))
-#         if kwargs_index != (self.preserve_index):
-#             warning_msg = (
-#                 f"Your kwargs for index ({kwargs_index}) mismatches the writer's "
-#                 f"settings self.preserve_index ({self.preserve_index}). "
-#                 "In this instance kwargs supersedes the writer settings."
-#             )
-#             warnings.warn(warning_msg)
-#         else:
-#             kwargs["index"] = self.preserve_index
-
-#         ## Need a test to ensure writing to local, and to S3 creates the same
-#         ## folder/file structure as with PandasCsvWriter
-#         table = pa.Table.from_pandas(
-#             next(df), schema=arrow_schema, preserve_index=self.preserve_index
-#         )
-
-#         with pa.csv.CSVWriter(
-#             sink=output_path, schema=table.schema, **kwargs
-#         ) as csv_writer:
-#             csv_writer.write_table(table)
-#             for chunk in df:
-#                 table = pa.Table.from_pandas(chunk, schema=arrow_schema)
-#                 csv_writer.write_table(table)
-
-
 @dataclass
 class ArrowCsvWriter(PandasCsvWriter):
-    """Use pandas engine choice to write csv files using pyarrow."""
+    """Use pandas engine choice to write CSV files using pyarrow."""
 
     def arrow_write(self, **kwargs):
         self._write(writer_engine="pyarrow", **kwargs)
