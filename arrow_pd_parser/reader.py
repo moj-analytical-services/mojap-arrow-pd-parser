@@ -50,17 +50,19 @@ def read(
     else:
         pass
 
+    is_iterable = chunksize is not None
+
     if isinstance(chunksize, str):
         max_bytes = human_to_bytes(chunksize)
         test_reader = get_default_reader_from_file_format(
-            file_format=file_format, chunksize=1000
+            file_format=file_format, is_iterable=is_iterable
         )
         df = next(test_reader.read(input_path))
         bytes_per_1000 = df.memory_usage(deep=True).sum()
         chunksize = int(1000 * max_bytes / bytes_per_1000)
 
     reader = get_default_reader_from_file_format(
-        file_format=file_format, chunksize=chunksize
+        file_format=file_format, is_iterable=is_iterable
     )
     if file_format == FileFormat.PARQUET:
         reader.expect_full_schema = parquet_expect_full_schema
@@ -68,6 +70,8 @@ def read(
     return reader.read(
         input_path=input_path,
         metadata=metadata,
+        is_iterable=is_iterable,
+        chunksize=chunksize,
         **kwargs,
     )
 

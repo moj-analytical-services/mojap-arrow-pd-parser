@@ -40,13 +40,18 @@ class DataFrameFileReader(ABC):
 
     @abstractmethod
     def read(
-        self, input_path: str, metadata: Union[Metadata, dict] = None, **kwargs
-    ) -> pd.DataFrame:
-        """Reads the file into pandas DataFrame."""
+        self,
+        input_path: str,
+        metadata: Union[Metadata, dict] = None,
+        is_iterable: bool = False,
+        chunksize: Optional[int] = None,
+        **kwargs,
+    ) -> Union[pd.DataFrame, Iterable[pd.DataFrame]]:
+        """Reads the file into pandas DataFrame or an iterator of DataFrames."""
 
     def _cast_pandas_table_to_schema(
         self, df: pd.DataFrame, metadata: Union[Metadata, dict]
-    ):
+    ) -> pd.DataFrame:
         metadata = validate_and_enrich_metadata(metadata)
         df = cast_pandas_table_to_schema(
             df=df,
@@ -63,17 +68,35 @@ class DataFrameFileReader(ABC):
 
         return df
 
+    def _convert_or_cast_frame(
+        self, df: pd.DataFrame, metadata: Union[Metadata, dict]
+    ) -> pd.DataFrame:
+        if metadata is None and (self.pd_string or self.pd_integer or self.pd_boolean):
+            df = df.convert_dtypes(
+                infer_objects=True,
+                convert_string=self.pd_string,
+                convert_integer=self.pd_integer,
+                convert_boolean=self.pd_boolean,
+                convert_floating=False,
+            )
+        else:
+            df = self._cast_pandas_table_to_schema(df=df, metadata=metadata)
+
+        return df
+
 
 @dataclass
 class PandasCsvReader(DataFrameFileReader):
-    """Reader for csv files."""
+    """Reader for CSV files using pandas."""
 
     def read(
         self,
         input_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        is_iterable: bool = False,
+        chunksize: Optional[int] = None,
         **kwargs,
-    ) -> pd.DataFrame:
+    ) -> Union[pd.DataFrame, Iterable[pd.DataFrame]]:
         """
         Reads a CSV file and returns a Pandas DataFrame
         input_path: File to read either local or S3.
@@ -90,35 +113,39 @@ class PandasCsvReader(DataFrameFileReader):
             if "dtype" not in kwargs:
                 kwargs["dtype"] = str
 
-        if is_s3_filepath(input_path):
-            df = wr.s3.read_csv(input_path, **kwargs)
-        else:
-            df = pd.read_csv(input_path, **kwargs)
+        if is_iterable:
+            if is_s3_filepath(input_path):
+                df_iter = wr.s3.read_csv(input_path, chunksize=chunksize, **kwargs)
+            else:
+                df_iter = pd.read_csv(input_path, chunksize=chunksize, **kwargs)
 
-        if metadata is None and (self.pd_string or self.pd_integer or self.pd_boolean):
-            df = df.convert_dtypes(
-                infer_objects=True,
-                convert_string=self.pd_string,
-                convert_integer=self.pd_integer,
-                convert_boolean=self.pd_boolean,
-                convert_floating=False,
-            )
-        else:
-            df = self._cast_pandas_table_to_schema(df, metadata)
+            for df in df_iter:
+                df = self._convert_or_cast_frame(df=df)
 
-        return df
+            yield df
+        else:
+            if is_s3_filepath(input_path):
+                df = wr.s3.read_csv(input_path, **kwargs)
+            else:
+                df = pd.read_csv(input_path, **kwargs)
+
+            df = self._convert_or_cast_frame(df=df)
+
+            return df
 
 
 @dataclass
 class PandasJsonReader(DataFrameFileReader):
-    """Reader for json files."""
+    """Reader for JSON files."""
 
     def read(
         self,
         input_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        is_iterable: bool = False,
+        chunksize: Optional[int] = None,
         **kwargs,
-    ) -> pd.DataFrame:
+    ) -> Union[pd.DataFrame, Iterable[pd.DataFrame]]:
         """
         Reads a JSONL file and returns a Pandas DataFrame
         input_path: File to read either local or S3.
@@ -136,34 +163,40 @@ class PandasJsonReader(DataFrameFileReader):
             warnings.warn('Ignoring orient in kwargs. Setting to orient="records"')
         kwargs["orient"] = "records"
 
-        if is_s3_filepath(input_path):
-            df = wr.s3.read_json(input_path, **kwargs)
+        if is_iterable:
+            if is_s3_filepath(input_path):
+                df_iter = wr.s3.read_json(input_path, chunksize=chunksize, **kwargs)
+            else:
+                df_iter = pd.read_json(input_path, chunksize=chunksize, **kwargs)
+
+            for df in df_iter:
+                df = self._convert_or_cast_frame(df=df)
+
+            yield df
         else:
-            df = pd.read_json(input_path, **kwargs)
+            if is_s3_filepath(input_path):
+                df = wr.s3.read_json(input_path, **kwargs)
+            else:
+                df = pd.read_json(input_path, **kwargs)
 
-        if metadata is None and (self.pd_string or self.pd_integer or self.pd_boolean):
-            df = df.convert_dtypes(
-                infer_objects=True,
-                convert_string=self.pd_string,
-                convert_integer=self.pd_integer,
-                convert_boolean=self.pd_boolean,
-                convert_floating=False,
-            )
-        else:
-            df = self._cast_pandas_table_to_schema(df, metadata)
+            df = self._convert_or_cast_frame(df=df)
 
-        return df
+            return df
 
 
-@dataclass
-class ArrowParquetReader(DataFrameFileReader):
-    """Reader for parquet files."""
+class ArrowBaseReader(DataFrameFileReader):
+    """Reader for Parquet files."""
 
     expect_full_schema: bool = True
 
     def read(
-        self, input_path: str, metadata: Metadata = None, **kwargs
-    ) -> pd.DataFrame:
+        self,
+        input_path: str,
+        metadata: Metadata = None,
+        is_iterable: bool = False,
+        chunksize: Optional[int] = None,
+        **kwargs,
+    ) -> Union[pd.DataFrame, Iterable[pd.DataFrame]]:
         """
         Reads a Parquet file and returns a Pandas DataFrame
         input_path: File to read either local or S3.
@@ -172,19 +205,19 @@ class ArrowParquetReader(DataFrameFileReader):
             arrow.parquet.read_table
         """
 
-        arrow_tab = pq.read_table(input_path, **kwargs)
+        arrow_table = self._read_to_table(input_path, **kwargs)
 
         if metadata:
             meta = validate_and_enrich_metadata(metadata)
             schema = ArrowConverter().generate_from_meta(meta)
-            arrow_tab = cast_arrow_table_to_schema(
-                arrow_tab,
+            arrow_table = cast_arrow_table_to_schema(
+                arrow_table,
                 schema=schema,
                 expect_full_schema=self.expect_full_schema,
             )
 
         df = arrow_to_pandas(
-            arrow_tab,
+            arrow_table,
             pd_boolean=self.pd_boolean,
             pd_integer=self.pd_integer,
             pd_string=self.pd_string,
@@ -193,6 +226,44 @@ class ArrowParquetReader(DataFrameFileReader):
         )
 
         return df
+
+    @abstractmethod
+    def _read_to_table(self, input_path, **kwargs):
+        return
+
+
+@dataclass
+class ArrowParquetReader(ArrowBaseReader):
+    """Reader for Parquet files."""
+
+    def _read_to_table(
+        self,
+        input_path,
+        is_iterable: bool = False,
+        chunksize: Optional[int] = None,
+        **kwargs,
+    ) -> pa.Table:
+        table = pq.read_table(input_path, **kwargs)
+        return table
+
+
+@dataclass
+class ArrowCsvReader(ArrowBaseReader):
+    """Reader for CSV files using arrow."""
+
+    def _read_to_table(
+        self,
+        input_path,
+        is_iterable: bool = False,
+        chunksize: Optional[int] = None,
+        **kwargs,
+    ) -> pa.Table:
+        table = pa.csv.read_csv(
+            input_path,
+            convert_options=pa.csv.ConvertOptions(strings_can_be_null=True),
+            **kwargs,
+        )
+        return table
 
 
 @dataclass
@@ -210,6 +281,7 @@ class DataFrameFileReaderIterator(DataFrameFileReader):
         self,
         input_path: str,
         metadata: Union[Metadata, dict] = None,
+        chunksize: int = 65536,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
         """Reads the file into pandas DataFrame."""
@@ -217,12 +289,13 @@ class DataFrameFileReaderIterator(DataFrameFileReader):
 
 @dataclass
 class PandasCsvReaderIterator(DataFrameFileReaderIterator):
-    """Reader for csv files."""
+    """Reader for CSV files."""
 
     def read(
         self,
         input_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        chunksize: int = 65536,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
         """
@@ -242,9 +315,9 @@ class PandasCsvReaderIterator(DataFrameFileReaderIterator):
                 kwargs["dtype"] = str
 
         if is_s3_filepath(input_path):
-            df_iter = wr.s3.read_csv(input_path, chunksize=self.chunksize, **kwargs)
+            df_iter = wr.s3.read_csv(input_path, chunksize=chunksize, **kwargs)
         else:
-            df_iter = pd.read_csv(input_path, chunksize=self.chunksize, **kwargs)
+            df_iter = pd.read_csv(input_path, chunksize=chunksize, **kwargs)
 
         for df in df_iter:
             if metadata is None and (
@@ -265,12 +338,13 @@ class PandasCsvReaderIterator(DataFrameFileReaderIterator):
 
 @dataclass
 class PandasJsonReaderIterator(DataFrameFileReaderIterator):
-    """Reader for json files."""
+    """Reader for JSON files."""
 
     def read(
         self,
         input_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        chunksize: int = 65536,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
         """
@@ -291,9 +365,9 @@ class PandasJsonReaderIterator(DataFrameFileReaderIterator):
         kwargs["orient"] = "records"
 
         if is_s3_filepath(input_path):
-            df_iter = wr.s3.read_json(input_path, chunksize=self.chunksize, **kwargs)
+            df_iter = wr.s3.read_json(input_path, chunksize=chunksize, **kwargs)
         else:
-            df_iter = pd.read_json(input_path, chunksize=self.chunksize, **kwargs)
+            df_iter = pd.read_json(input_path, chunksize=chunksize, **kwargs)
 
         for df in df_iter:
             if metadata is None and (
@@ -314,7 +388,7 @@ class PandasJsonReaderIterator(DataFrameFileReaderIterator):
 
 @dataclass
 class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
-    """Reader for parquet files."""
+    """Reader for Parquet files."""
 
     expect_full_schema: bool = True
 
@@ -358,7 +432,7 @@ class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
 
 def get_default_reader_from_file_format(
     file_format: Union[FileFormat, str],
-    chunksize: Optional[int] = None,
+    is_iterable: bool = False,
     engine: str = None,
 ) -> DataFrameFileReader:
     # Convert to enum
@@ -374,24 +448,63 @@ def get_default_reader_from_file_format(
 
     # Get reader
     if file_format == FileFormat.CSV:
-        reader = (
-            PandasCsvReaderIterator(chunksize=chunksize)
-            if chunksize is not None
-            else PandasCsvReader()
-        )
+        # reader = PandasCsvReaderIterator() if is_iterable else PandasCsvReader()
+        reader = PandasCsvReader()
     elif file_format == FileFormat.JSON:
-        reader = (
-            PandasJsonReaderIterator(chunksize=chunksize)
-            if chunksize is not None
-            else PandasJsonReader()
-        )
+        reader = PandasJsonReader()
     elif file_format == FileFormat.PARQUET:
-        reader = (
-            ArrowParquetReaderIterator(chunksize=chunksize)
-            if chunksize is not None
-            else ArrowParquetReader()
-        )
+        reader = ArrowParquetReader()
     else:
         raise ValueError(f"Unsupported file_format {file_format}")
+
+    # implemented_engines = ["pandas", "arrow"]
+    # default_engines = {
+    #     FileFormat.CSV: "pandas",
+    #     FileFormat.JSON: "pandas",
+    #     FileFormat.PARQUET: "arrow",
+    # }
+    # readers_dict = {
+    #     "pandas": {
+    #         FileFormat.CSV: PandasCsvReader(),
+    #         FileFormat.JSON: PandasJsonReader(),
+    #     },
+    #     "arrow": {
+    #         FileFormat.CSV: ArrowCsvReader(),
+    #         FileFormat.PARQUET: ArrowParquetReader(),
+    #     },
+    # }
+
+    # if file_format not in FileFormat:
+    #     raise ValueError(f"Unsupported file_format {file_format}")
+
+    # default_engine = default_engines[file_format]
+    # default_reader = readers_dict[default_engine][file_format]
+
+    # if reader_engine is None:
+    #     reader = default_reader
+
+    # elif reader_engine.casefold() in implemented_engines:
+    #     readers_for_format = readers_dict[reader_engine]
+    #     try:
+    #         reader = readers_for_format[file_format]
+    #     except KeyError:
+    #         raise KeyError(
+    #             f"""
+    #             {reader_engine} is not currently supported for the {str(file_format).split('.')[-1].upper()} format.
+    #             This {str(file_format).split('.')[-1].upper()} file will use {default_engine}.
+    #             """  # noqa: E501
+    #         )
+
+    # elif reader_engine.casefold() not in implemented_engines:
+    #     raise EngineNotImplementedError(
+    #         f"""
+    #         {reader_engine} is not currently supported.
+    #         The default for {str(file_format).split('.')[-1].upper()} file type is {default_engine}.
+
+    #         We plan to support more engine choice in the future. For now we support
+    #         pyarrow ('arrow') and pandas engines. Default engines are:
+    #         CSV: {default_engines[FileFormat.CSV]}, JSON: {default_engines[FileFormat.JSON]}, Parquet: {default_engines[FileFormat.PARQUET]}.
+    #         """  # noqa: E501
+    #     )
 
     return reader

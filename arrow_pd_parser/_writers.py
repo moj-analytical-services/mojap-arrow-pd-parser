@@ -119,7 +119,7 @@ class PandasCsvWriter(DataFrameTextFileWriter):
         metadata: Union[Metadata, dict] = None,
         first_chunk: bool = True,
         **kwargs,
-    ):
+    ) -> None:
         """
         Writes a pandas DataFrame to CSV
         f: File-like object to write either local or S3.
@@ -169,7 +169,7 @@ class PandasJsonWriter(DataFrameTextFileWriter):
         metadata: Union[Metadata, dict] = None,
         first_chunk: bool = True,
         **kwargs,
-    ):
+    ) -> None:
         """
         Writes a pandas DataFrame to JSON
         output_path: File to write either to local or S3.
@@ -295,7 +295,7 @@ class ArrowBaseWriter(DataFrameFileWriter):
         output_path: Union[IO, str],
         arrow_schema: pa.Schema = None,
         **kwargs,
-    ):
+    ) -> None:
         return
 
 
@@ -314,7 +314,7 @@ class ArrowParquetWriter(ArrowBaseWriter):
         output_path: Union[IO, str],
         arrow_schema: pa.Schema = None,
         **kwargs,
-    ):
+    ) -> None:
         table = pa.Table.from_pandas(next(df), schema=arrow_schema)
 
         with pa.parquet.ParquetWriter(
@@ -330,7 +330,7 @@ class ArrowParquetWriter(ArrowBaseWriter):
 class ArrowCsvWriter(PandasCsvWriter):
     """Use pandas engine choice to write CSV files using pyarrow."""
 
-    def arrow_write(self, **kwargs):
+    def arrow_write(self, **kwargs) -> None:
         self._write(writer_engine="pyarrow", **kwargs)
 
 
