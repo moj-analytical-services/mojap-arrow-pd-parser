@@ -38,14 +38,13 @@ test_default_file_types = [
     for value in list_of_values
 ]
 
-test_default_file_types_writer = [item[:-1] for item in test_default_file_types]
-
 # Output format:
 # test_default_file_types = [
 #     ["json", PandasJsonWriter, "pandas"],
 #     ...
 #     ["SNAPPY.PARQUET", ArrowParquetWriter, "arrow"],
 # ]
+test_default_file_types_writer = [item[:-1] for item in test_default_file_types]
 
 valid_file_types = {**default_file_types, ArrowCsvWriter: csv_file_types}
 
@@ -69,7 +68,7 @@ test_mismatch_file_types = [
 
 valid_engines = ["pandas", "arrow", None]
 
-invalid_file_type_engines = [
+invalid_file_type_engine_combinations = [
     ["json", "arrow"],
     ["parquet", "pandas"],
 ]
@@ -94,57 +93,66 @@ class Test_get_default_writer:
         actual = get_writer_for_file_format(data_format, None)
         assert isinstance(actual, expected_class)
 
-    def test_infer_writer_from_file_path(
-        self, monkeypatch, data_format, expected_class, df_all_types
+    def test_infer_default_writer_from_file_path(
+        self, monkeypatch: pytest.MonkeyPatch, data_format, expected_class, df_all_types
     ):
         """
         Test that get_writer_for_file_format can infer the file type from the file name
         and then retrieve the correct writer for each file format, when no engine
         argument is supplied.
         """
+        # stub out writer.expected_class.write for True (rather than None)
+        # so actual --> True if the expected_class is called
+        monkeypatch.setattr(expected_class, "write", lambda *args, **kwargs: True)
+
+        file_name = f"file_name.{data_format}"
         with tempfile.TemporaryDirectory() as tmp_dir:
-            # stub out writer.expected_class.write for True (rather than None)
-            # so actual --> True if the expected_class is called
-            monkeypatch.setattr(expected_class, "write", lambda *args, **kwargs: True)
-            file_name = f"file_name.{data_format}"
             output_path = os.path.join(tmp_dir, file_name)
-            actual = writer.write(df=df_all_types, output_path=output_path)
-            assert actual
+
+        actual = writer.write(df=df_all_types, output_path=output_path)
+
+        assert actual
 
 
 @pytest.mark.parametrize("data_format, unexpected_class", test_mismatch_file_types)
 class Test_get_default_writer_error_if_mismatch:
-    def test_error_if_mismatch_get_default_writer_type_from_file_format(
+    def test_error_if_mismatch_get_writer_type_for_file_format(
         self, data_format, unexpected_class
     ):
         """
         Test that get_writer_for_file_format retrieves a writer that is
         different from the incorrect class.
         """
+        actual = get_writer_for_file_format(data_format)
+
         with pytest.raises(AssertionError):
-            actual = get_writer_for_file_format(data_format)
             assert isinstance(actual, unexpected_class)
 
     def test_error_if_mismatch_infer_writer_from_file_path(
-        self, monkeypatch, data_format, unexpected_class, df_all_types
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        data_format,
+        unexpected_class,
+        df_all_types,
     ):
         """
         Test that get_writer_for_file_format retrieves a writer that is
         different from the incorrect class when inferring file format from the file
         name.
         """
+        # stub out writer.unexpected_class.write for True (rather than None)
+        # so actual --> None, raising an AssertionError if the unexpected_class
+        # is not called
+        monkeypatch.setattr(unexpected_class, "write", lambda *args, **kwargs: True)
+        file_name = f"file_name.{data_format}"
+
         with tempfile.TemporaryDirectory() as tmp_dir:
-            with pytest.raises(AssertionError):
-                # stub out writer.unexpected_class.write for True (rather than None)
-                # so actual --> None, raising an AssertionError if the unexpected_class
-                # is not called
-                monkeypatch.setattr(
-                    unexpected_class, "write", lambda *args, **kwargs: True
-                )
-                file_name = f"file_name.{data_format}"
-                output_path = os.path.join(tmp_dir, file_name)
-                actual = writer.write(df=df_all_types, output_path=output_path)
-                assert actual
+            output_path = os.path.join(tmp_dir, file_name)
+
+        actual = writer.write(df=df_all_types, output_path=output_path)
+
+        with pytest.raises(AssertionError):
+            assert actual
 
 
 @pytest.mark.parametrize(
@@ -165,24 +173,31 @@ def test_get_default_writer_type_from_file_format(
     "data_format, expected_class, writer_engine", test_valid_file_types
 )
 def test_infer_writer_from_file_path(
-    monkeypatch, data_format, expected_class, writer_engine, df_all_types
+    monkeypatch: pytest.MonkeyPatch,
+    data_format,
+    expected_class,
+    writer_engine,
+    df_all_types,
 ):
     """
     Test that get_writer_for_file_format can infer the file type from the file name
     and then retrieve the correct writer for each file format, when no engine
     argument is supplied.
     """
+    # stub out writer.unexpected_class.write for True (rather than None)
+    # so actual --> None, raising an AssertionError if the unexpected_class
+    # is not called
+    monkeypatch.setattr(expected_class, "write", lambda *args, **kwargs: True)
+    file_name = f"file_name.{data_format}"
+
     with tempfile.TemporaryDirectory() as tmp_dir:
-        # stub out writer.unexpected_class.write for True (rather than None)
-        # so actual --> None, raising an AssertionError if the unexpected_class
-        # is not called
-        monkeypatch.setattr(expected_class, "write", lambda *args, **kwargs: True)
-        file_name = f"file_name.{data_format}"
         output_path = os.path.join(tmp_dir, file_name)
-        actual = writer.write(
-            df=df_all_types, output_path=output_path, writer_engine=writer_engine
-        )
-        assert actual
+
+    actual = writer.write(
+        df=df_all_types, output_path=output_path, writer_engine=writer_engine
+    )
+
+    assert actual
 
 
 @pytest.mark.parametrize(
@@ -206,8 +221,10 @@ def test_no_error_when_write_local_path_not_exist(data_format):
     Test that if the path does not exist, the writer will not error
     """
     #
+    df = reader.read("tests/data/all_types.csv")
+    file_path = f"does/not/exist/data.{data_format}"
+
     with tempfile.TemporaryDirectory() as tmp_dir:
-        df = reader.read("tests/data/all_types.csv")
-        file_path = f"does/not/exist/data.{data_format}"
         out_file = os.path.join(tmp_dir, file_path)
-        writer.write(df, out_file)
+
+    writer.write(df, out_file)

@@ -28,8 +28,13 @@ engine_file_types = {
     "pandas": [FileFormat.CSV, FileFormat.JSON],
     "arrow": [FileFormat.CSV, FileFormat.PARQUET],
 }
+reader_engine_file_types = engine_file_types
+writer_engine_file_types = engine_file_types
+
 
 valid_engines = ["pandas", "arrow", None]
+valid_reader_engines = valid_engines
+valid_writer_engines = valid_engines
 
 
 @pytest.fixture
@@ -51,10 +56,17 @@ def test_meta():
     }
 
 
+@pytest.fixture
+def df_all_types_from_meta(test_meta):
+    return reader.csv.read("tests/data/all_types.csv", test_meta)
+
+
 @pytest.mark.parametrize("trip1_file_format", all_formats)
 @pytest.mark.parametrize("trip2_file_format", all_formats)
-def test_round_trip(trip1_file_format, trip2_file_format, test_meta):
-    original = reader.csv.read("tests/data/all_types.csv", test_meta)
+def test_round_trip(
+    trip1_file_format, trip2_file_format, test_meta, df_all_types_from_meta
+):
+    original = df_all_types_from_meta
     orig_copy = original.copy()
 
     # Trip 1
@@ -88,8 +100,10 @@ def test_round_trip(trip1_file_format, trip2_file_format, test_meta):
 
 @pytest.mark.parametrize("trip1_file_format", all_formats)
 @pytest.mark.parametrize("trip2_file_format", all_formats)
-def test_round_trip_chunked(trip1_file_format, trip2_file_format, test_meta):
-    original = reader.csv.read("tests/data/all_types.csv", test_meta)
+def test_round_trip_chunked(
+    trip1_file_format, trip2_file_format, test_meta, df_all_types_from_meta
+):
+    original = df_all_types_from_meta
     orig_copy = original.copy()
 
     # Trip 1
@@ -116,21 +130,25 @@ def test_round_trip_chunked(trip1_file_format, trip2_file_format, test_meta):
 
 
 @pytest.mark.parametrize("trip_file_format, trip_file_suffix", test_file_types)
-@pytest.mark.parametrize("trip_writer_engine", valid_engines)
+@pytest.mark.parametrize("trip_writer_engine", valid_writer_engines)
 def test_round_trip_writer_engines_default_reader(
-    trip_file_format, trip_file_suffix, trip_writer_engine, test_meta
+    trip_file_format,
+    trip_file_suffix,
+    trip_writer_engine,
+    test_meta,
+    df_all_types_from_meta,
 ):
     if trip_writer_engine is not None:
-        if trip_file_format not in engine_file_types[trip_writer_engine]:
+        if trip_file_format not in writer_engine_file_types[trip_writer_engine]:
             pytest.skip(
                 "file_format ({trip_file_suffix}) and engine combination is not yet implemented"  # noqa: E501
             )
 
-    original = reader.csv.read("tests/data/all_types.csv", test_meta)
+    original = df_all_types_from_meta
     orig_copy = original.copy()
 
-    with tempfile.NamedTemporaryFile() as temp_file_name:
-        temp_out_file = temp_file_name.name + "." + trip_file_suffix
+    with tempfile.NamedTemporaryFile(suffix="." + trip_file_suffix) as temp_file_name:
+        temp_out_file = temp_file_name.name
 
     writer.write(
         df=orig_copy,
@@ -140,9 +158,43 @@ def test_round_trip_writer_engines_default_reader(
         writer_engine=trip_writer_engine,
     )
 
-    final = reader.read(temp_out_file, metadata=test_meta)
+    final = reader.read(input_path=temp_out_file, metadata=test_meta)
 
     assert_frame_equal(original, final)
 
 
-# Test that all engine readers produce the same read file (single writer engine as input, multiple reader engines equality)  # noqa: E501
+@pytest.mark.parametrize("trip_file_format, trip_file_suffix", test_file_types)
+@pytest.mark.parametrize("trip_reader_engine", valid_reader_engines)
+def test_round_trip_reader_engines_default_writer(
+    trip_file_format,
+    trip_file_suffix,
+    trip_reader_engine,
+    test_meta,
+    df_all_types_from_meta,
+):
+    if trip_reader_engine is not None:
+        if trip_file_format not in reader_engine_file_types[trip_reader_engine]:
+            pytest.skip(
+                "file_format ({trip_file_suffix}) and engine combination is not yet implemented"  # noqa: E501
+            )
+
+    # Default csv reader
+    original = df_all_types_from_meta
+    orig_copy = original.copy()
+
+    with tempfile.NamedTemporaryFile(suffix="." + trip_file_suffix) as temp_file_name:
+        temp_out_file = temp_file_name.name
+
+    # Default writer
+    writer.write(
+        df=orig_copy,
+        output_path=temp_out_file,
+        file_format=trip_file_format,
+        metadata=test_meta,
+    )
+
+    final = reader.read(
+        input_path=temp_out_file, metadata=test_meta, reader_engine=trip_reader_engine
+    )
+
+    assert_frame_equal(original, final)

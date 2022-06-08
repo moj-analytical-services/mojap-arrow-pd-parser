@@ -331,7 +331,7 @@ class ArrowCsvWriter(PandasCsvWriter):
     """Use pandas engine choice to write CSV files using pyarrow."""
 
     def arrow_write(self, **kwargs) -> None:
-        self._write(writer_engine="pyarrow", **kwargs)
+        self._write(engine="pyarrow", **kwargs)
 
 
 def get_writer_for_file_format(
@@ -377,7 +377,10 @@ def get_writer_for_file_format(
             raise KeyError(
                 f"""
                 {writer_engine} is not currently supported for the {str(file_format).split('.')[-1].upper()} format.
-                This {str(file_format).split('.')[-1].upper()} file will use {default_engine}.
+                The default engine for this {str(file_format).split('.')[-1].upper()} is {default_engine}.
+
+                To use the default engine either pass no argument to reader for
+                writer_engine, or pass "{default_engine}".
                 """  # noqa: E501
             )
 

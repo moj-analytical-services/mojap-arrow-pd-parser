@@ -5,12 +5,9 @@ from mojap_metadata import Metadata
 
 from arrow_pd_parser._readers import (
     ArrowParquetReader,
-    ArrowParquetReaderIterator,
     PandasCsvReader,
-    PandasCsvReaderIterator,
     PandasJsonReader,
-    PandasJsonReaderIterator,
-    get_default_reader_from_file_format,
+    get_reader_for_file_format,
 )
 from arrow_pd_parser.utils import FileFormat, human_to_bytes, infer_file_format
 
@@ -21,6 +18,7 @@ def read(
     file_format: Union[FileFormat, str] = None,
     parquet_expect_full_schema: bool = True,
     chunksize: Optional[Union[int, str]] = None,
+    reader_engine: str = None,
     **kwargs,
 ) -> Union[pd.DataFrame, Iterable[pd.DataFrame]]:
     """
@@ -54,16 +52,16 @@ def read(
 
     if isinstance(chunksize, str):
         max_bytes = human_to_bytes(chunksize)
-        test_reader = get_default_reader_from_file_format(
-            file_format=file_format, is_iterable=is_iterable
-        )
+        test_reader = get_reader_for_file_format(file_format=file_format)
         df = next(test_reader.read(input_path))
         bytes_per_1000 = df.memory_usage(deep=True).sum()
         chunksize = int(1000 * max_bytes / bytes_per_1000)
 
-    reader = get_default_reader_from_file_format(
-        file_format=file_format, is_iterable=is_iterable
+    reader = get_reader_for_file_format(
+        file_format=file_format, reader_engine=reader_engine
     )
+    kwargs.pop("reader_engine", None)
+
     if file_format == FileFormat.PARQUET:
         reader.expect_full_schema = parquet_expect_full_schema
 
@@ -79,6 +77,3 @@ def read(
 csv = PandasCsvReader()
 json = PandasJsonReader()
 parquet = ArrowParquetReader()
-csv_iter = PandasCsvReaderIterator()
-json_iter = PandasJsonReaderIterator()
-parquet_iter = ArrowParquetReaderIterator()
