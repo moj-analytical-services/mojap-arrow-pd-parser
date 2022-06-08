@@ -1,7 +1,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import IO, Callable, Dict, Iterable, Optional, Union
+from typing import IO, Callable, Dict, Iterable, List, Optional, Union
 
 import awswrangler as wr
 import pandas as pd
@@ -29,8 +29,8 @@ class DataFrameFileReader(ABC):
     Should just have a read method returning a pandas DataFrame.
     """
 
-    ignore_columns: list[str] = field(default_factory=list)
-    drop_columns: list[str] = field(default_factory=list)
+    ignore_columns: List[str] = field(default_factory=list)
+    drop_columns: List[str] = field(default_factory=list)
     pd_integer: bool = True
     pd_string: bool = True
     pd_boolean: bool = True

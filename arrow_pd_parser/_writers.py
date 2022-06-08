@@ -4,7 +4,7 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import IO, Dict, Iterable, Union
+from typing import IO, Dict, Iterable, List, Union
 
 import numpy as np
 import pandas as pd
@@ -30,8 +30,8 @@ class DataFrameFileWriter(ABC):
 
     compression: str = None
     copy: bool = True
-    ignore_columns: list[str] = field(default_factory=list)
-    drop_columns: list[str] = field(default_factory=list)
+    ignore_columns: List[str] = field(default_factory=list)
+    drop_columns: List[str] = field(default_factory=list)
     pd_integer: bool = True
     pd_string: bool = True
     pd_boolean: bool = True
