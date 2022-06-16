@@ -172,11 +172,11 @@ class ArrowParquetReader(DataFrameFileReader):
         """
 
         if "expect_full_schema" in kwargs.keys():
-            exp_full_schema=kwargs["expect_full_schema"]
+            exp_full_schema = kwargs["expect_full_schema"]
             kwargs.pop("expect_full_schema")
-        
+
         else:
-            exp_full_schema=self.expect_full_schema
+            exp_full_schema = self.expect_full_schema
 
         arrow_tab = pq.read_table(input_path, **kwargs)
 
@@ -335,11 +335,11 @@ class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
         """
 
         if "expect_full_schema" in kwargs.keys():
-            exp_full_schema=kwargs["expect_full_schema"]
+            exp_full_schema = kwargs["expect_full_schema"]
             kwargs.pop("expect_full_schema")
-        
+
         else:
-            exp_full_schema=self.expect_full_schema
+            exp_full_schema = self.expect_full_schema
 
         pa_ds = ds.dataset(input_path, **kwargs)
         batch_iter = pa_ds.to_batches(batch_size=self.chunksize)
