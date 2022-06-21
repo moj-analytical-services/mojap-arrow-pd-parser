@@ -4,7 +4,7 @@ import tempfile
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
-
+from mojap_metadata import Metadata
 from arrow_pd_parser import reader, writer
 
 
@@ -103,3 +103,42 @@ def test_round_trip():
                 metadata=meta,
             )
             assert_frame_equal(df1, df2)
+
+
+@pytest.mark.parametrize("data_format", ["csv", "jsonl", "parquet"])
+def test_allow_missing_columns_works(data_format):
+    complete_meta = Metadata(
+        columns=[
+            {"name": "n_legs", "type": "int64"},
+            {"name": "animals", "type": "string"},
+            {"name": "is_mammal", "type": "bool"},
+        ]
+    )
+    incomplete_meta = Metadata(
+        columns=[
+            {"name": "n_legs", "type": "int64"},
+            {"name": "animals", "type": "string"},
+        ]
+    )
+    path = f"tests/data/missing_cols.{data_format}"
+    df1 = reader.read(
+        input_path=path, metadata=incomplete_meta, allow_missing_columns=False
+    )
+    df2 = reader.read(
+        input_path=path, metadata=complete_meta, allow_missing_columns=True
+    )
+    assert_frame_equal(df1, df2)
+
+
+@pytest.mark.parametrize("data_format", ["csv", "jsonl", "parquet"])
+def test_allow_missing_columns_works_with_no_missing_columns(data_format):
+    meta = Metadata(
+        columns=[
+            {"name": "n_legs", "type": "int64"},
+            {"name": "animals", "type": "string"},
+        ]
+    )
+    path = f"tests/data/missing_cols.{data_format}"
+    df1 = reader.read(input_path=path, metadata=meta, allow_missing_columns=False)
+    df2 = reader.read(input_path=path, metadata=meta, allow_missing_columns=True)
+    assert_frame_equal(df1, df2)
