@@ -256,6 +256,7 @@ def cast_pandas_table_to_schema(
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
     bool_map: Union[Callable, dict] = None,
+    allow_missing_columns: bool = False,
     num_error_map: dict = None,
 ):
     """
@@ -305,7 +306,7 @@ def cast_pandas_table_to_schema(
 
     for c in meta_cols_to_convert:
         # Null first if applicable
-        if c["name"] not in df.columns:
+        if c["name"] not in df.columns and not allow_missing_columns:
             raise ValueError(f"Column '{c['name']}' not in df")
 
         else:
