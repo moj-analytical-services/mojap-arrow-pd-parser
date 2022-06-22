@@ -2,7 +2,7 @@
 .PHONY: yamllint
 yamllint:
 	python -m yamllint --version
-	python -m yamllint src
+	python -m yamllint .
 ## Run tests using pytest
 .PHONY: test
 test:

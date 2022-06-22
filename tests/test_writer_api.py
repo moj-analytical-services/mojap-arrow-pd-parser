@@ -2,7 +2,6 @@ import logging
 import os
 import tempfile
 
-import pandas as pd
 import pytest
 from arrow_pd_parser import reader, writer
 from arrow_pd_parser._writers import (
@@ -74,11 +73,6 @@ invalid_file_type_engine_combinations = [
 ]
 
 invalid_engines = ["spark", "dplyr"]
-
-
-@pytest.fixture
-def df_all_types():
-    return pd.read_csv("tests/data/all_types.csv")
 
 
 @pytest.mark.parametrize("data_format, expected_class", test_default_file_types_writer)
