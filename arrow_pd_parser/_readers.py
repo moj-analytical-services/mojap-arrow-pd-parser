@@ -150,11 +150,10 @@ class PandasBaseReader(DataFrameFileReader):
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ):
-        with reader(input_path, chunksize=chunksize, **kwargs) as iter_reader:
-            for chunk in iter_reader:
-                chunk = self._convert_or_cast_frame(df=chunk, metadata=metadata)
-
-                yield chunk
+        df_iter = reader(input_path, chunksize=chunksize, **kwargs)
+        for chunk in df_iter:
+            chunk = self._convert_or_cast_frame(df=chunk, metadata=metadata)
+            yield chunk
 
 
 @dataclass

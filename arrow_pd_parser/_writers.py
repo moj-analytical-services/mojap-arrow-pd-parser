@@ -160,7 +160,7 @@ class PandasCsvWriter(DataFrameTextFileWriter):
 
 @dataclass
 class PandasJsonWriter(DataFrameTextFileWriter):
-    """Write to JSON file using pandas"""
+    """Write to JSONL file using pandas"""
 
     def _write(
         self,
