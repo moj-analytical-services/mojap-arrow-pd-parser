@@ -386,7 +386,7 @@ class ArrowCsvReader(ArrowBaseReader):
         **kwargs,
     ) -> pa.Table:
 
-        reader_fs = kwargs["filesystem"]
+        reader_fs = kwargs.pop("filesystem")
 
         with reader_fs.open_input_file(input_path) as csv_file:
             table = pa.csv.read_csv(
