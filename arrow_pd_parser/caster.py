@@ -197,7 +197,7 @@ def cast_pandas_column_to_schema(
 
     # get type_category if not exist
     if "type_category" not in metacol:
-        tmp_meta = Metadata(columns=metacol)
+        tmp_meta = Metadata(columns=[metacol])
         tmp_meta.set_col_type_category_from_types()
         metacol = tmp_meta.get_column(metacol["name"])
 
