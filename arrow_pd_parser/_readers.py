@@ -41,12 +41,16 @@ class DataFrameFileReader(ABC):
 
     @abstractmethod
     def read(
-        self, input_path: str, metadata: Union[Metadata, dict] = None, **kwargs
+        self,
+        input_path: str,
+        metadata: Union[Metadata, dict] = None,
+        allow_missing_columns: bool = False,
+        **kwargs,
     ) -> pd.DataFrame:
         """reads the file into pandas DataFrame"""
 
     def _cast_pandas_table_to_schema(
-        self, df: pd.DataFrame, metadata: Union[Metadata, dict]
+        self, df: pd.DataFrame, metadata: Union[Metadata, dict], allow_missing_columns
     ):
         metadata = validate_and_enrich_metadata(metadata)
         df = cast_pandas_table_to_schema(
@@ -60,6 +64,7 @@ class DataFrameFileReader(ABC):
             pd_date_type=self.pd_date_type,
             pd_timestamp_type=self.pd_timestamp_type,
             bool_map=self.bool_map,
+            allow_missing_columns=allow_missing_columns,
         )
         return df
 
@@ -72,6 +77,7 @@ class PandasCsvReader(DataFrameFileReader):
         self,
         input_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        allow_missing_columns: bool = True,
         **kwargs,
     ) -> pd.DataFrame:
         """
@@ -104,7 +110,7 @@ class PandasCsvReader(DataFrameFileReader):
                 convert_floating=False,
             )
         else:
-            df = self._cast_pandas_table_to_schema(df, metadata)
+            df = self._cast_pandas_table_to_schema(df, metadata, allow_missing_columns)
         return df
 
 
@@ -116,6 +122,7 @@ class PandasJsonReader(DataFrameFileReader):
         self,
         input_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        allow_missing_columns: bool = None,
         **kwargs,
     ) -> pd.DataFrame:
         """
@@ -149,7 +156,7 @@ class PandasJsonReader(DataFrameFileReader):
                 convert_floating=False,
             )
         else:
-            df = self._cast_pandas_table_to_schema(df, metadata)
+            df = self._cast_pandas_table_to_schema(df, metadata, allow_missing_columns)
 
         return df
 
@@ -161,7 +168,11 @@ class ArrowParquetReader(DataFrameFileReader):
     expect_full_schema: bool = True
 
     def read(
-        self, input_path: str, metadata: Metadata = None, **kwargs
+        self,
+        input_path: str,
+        metadata: Metadata = None,
+        allow_missing_columns: bool = False,
+        **kwargs,
     ) -> pd.DataFrame:
         """
         Reads a Parquet file and returns a Pandas DataFrame
@@ -180,6 +191,7 @@ class ArrowParquetReader(DataFrameFileReader):
                 arrow_tab,
                 schema=schema,
                 expect_full_schema=self.expect_full_schema,
+                allow_missing_columns=allow_missing_columns,
             )
 
         df = arrow_to_pandas(
@@ -209,6 +221,7 @@ class DataFrameFileReaderIterator(DataFrameFileReader):
         self,
         input_path: str,
         metadata: Union[Metadata, dict] = None,
+        allow_missing_columns: bool = False,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
         """reads the file into pandas DataFrame"""
@@ -222,6 +235,7 @@ class PandasCsvReaderIterator(DataFrameFileReaderIterator):
         self,
         input_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        allow_missing_columns: bool = False,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
         """
@@ -257,7 +271,9 @@ class PandasCsvReaderIterator(DataFrameFileReaderIterator):
                     convert_floating=False,
                 )
             else:
-                df = self._cast_pandas_table_to_schema(df, metadata)
+                df = self._cast_pandas_table_to_schema(
+                    df, metadata, allow_missing_columns
+                )
             yield df
 
 
@@ -269,6 +285,7 @@ class PandasJsonReaderIterator(DataFrameFileReaderIterator):
         self,
         input_path: Union[IO, str],
         metadata: Union[Metadata, dict] = None,
+        allow_missing_columns: bool = False,
         **kwargs,
     ) -> Iterable[pd.DataFrame]:
         """
@@ -305,7 +322,9 @@ class PandasJsonReaderIterator(DataFrameFileReaderIterator):
                     convert_floating=False,
                 )
             else:
-                df = self._cast_pandas_table_to_schema(df, metadata)
+                df = self._cast_pandas_table_to_schema(
+                    df, metadata, allow_missing_columns
+                )
 
             yield df
 
@@ -317,7 +336,11 @@ class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
     expect_full_schema: bool = True
 
     def read(
-        self, input_path: str, metadata: Metadata = None, **kwargs
+        self,
+        input_path: str,
+        metadata: Metadata = None,
+        allow_missing_columns: bool = False,
+        **kwargs,
     ) -> Iterable[pd.DataFrame]:
         """
         Reads a Parquet file and returns a Pandas DataFrame
@@ -340,6 +363,7 @@ class ArrowParquetReaderIterator(DataFrameFileReaderIterator):
                     arrow_tab,
                     schema=schema,
                     expect_full_schema=self.expect_full_schema,
+                    allow_missing_columns=allow_missing_columns,
                 )
 
             df = arrow_to_pandas(

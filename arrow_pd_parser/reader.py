@@ -20,6 +20,7 @@ def read(
     file_format: Union[FileFormat, str] = None,
     parquet_expect_full_schema: bool = True,
     chunksize: Optional[Union[int, str]] = None,
+    allow_missing_columns: bool = False,
     **kwargs,
 ) -> Union[pd.DataFrame, Iterable[pd.DataFrame]]:
     """
@@ -67,6 +68,7 @@ def read(
     return reader.read(
         input_path=input_path,
         metadata=metadata,
+        allow_missing_columns=allow_missing_columns,
         **kwargs,
     )
 

@@ -256,6 +256,7 @@ def cast_pandas_table_to_schema(
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
     bool_map: Union[Callable, dict] = None,
+    allow_missing_columns: bool = False,
     num_error_map: dict = None,
 ):
     """
@@ -306,8 +307,8 @@ def cast_pandas_table_to_schema(
     for c in meta_cols_to_convert:
         # Null first if applicable
         if c["name"] not in df.columns:
-            raise ValueError(f"Column '{c['name']}' not in df")
-
+            if not allow_missing_columns:
+                raise ValueError(f"Column '{c['name']}' not in df")
         else:
             # must get num_errors from either meta or num_error_map. Meta has precedence
             if c.get("num_errors"):
@@ -332,7 +333,8 @@ def cast_pandas_table_to_schema(
     final_cols = [
         c["name"]
         for c in meta["columns"]
-        if c["name"] not in drop_columns or c["name"] not in meta["partitions"]
+        if (c["name"] not in drop_columns or c["name"] not in meta["partitions"])
+        and c["name"] in df.columns
     ]
     df = df[final_cols]
 

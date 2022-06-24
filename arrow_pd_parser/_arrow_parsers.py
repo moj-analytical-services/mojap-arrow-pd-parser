@@ -57,6 +57,7 @@ def cast_arrow_table_to_schema(
     tab: pa.Table,
     schema: Union[pa.Schema, None] = None,
     expect_full_schema: bool = True,
+    allow_missing_columns: bool = False,
 ):
     """Casts an arrow schema to a new or partial schema
     Args:
@@ -73,6 +74,11 @@ def cast_arrow_table_to_schema(
         update_schema = schema
     else:
         update_schema = update_existing_schema(tab.schema, schema)
+
+    if allow_missing_columns:
+        missing_cols = set(update_schema.names) - set(tab.column_names)
+        for col in missing_cols:
+            update_schema = update_schema.remove(update_schema.get_field_index(col))
 
     new_tab = tab.cast(update_schema)
 
