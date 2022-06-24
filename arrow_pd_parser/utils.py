@@ -1,9 +1,11 @@
 import os
+import re
 from copy import deepcopy
 from enum import Enum, auto
-from typing import Union, IO
+from pathlib import Path
+from typing import IO, Union
+
 from mojap_metadata import Metadata
-import re
 
 
 class FileFormatNotFound(Exception):
@@ -18,6 +20,10 @@ class FileFormat(Enum):
     PARQUET = auto()
     JSON = auto()
     CSV = auto()
+
+    @classmethod
+    def __contains__(cls, item):
+        return item in cls.__members__.values()
 
     @classmethod
     def from_string(cls, string: str):
@@ -50,12 +56,18 @@ def match_file_format_to_str(s: str, raise_error=False) -> Union[FileFormat, Non
         return None
 
 
-def infer_format_from_filepath(input_file) -> FileFormat:
-    fn = os.path.basename(input_file)
-    _, ext = fn.split(".", 1)
+def infer_file_format_from_filepath(input_file) -> FileFormat:
+    filename = os.path.basename(input_file)
+    ext = Path(filename).suffix.strip(".")
     file_format = match_file_format_to_str(ext)
     if file_format:
         return file_format
+    elif len(Path(filename).suffixes) > 1:
+        surplus_suffixes = ["tar", "gz", "zip", "gzip", "brotli"]
+        exts = [suffix.strip(".").lower() for suffix in Path(filename).suffixes]
+        exts = [suffix for suffix in exts if suffix not in surplus_suffixes]
+        ext = exts[-1]
+        return match_file_format_to_str(exts[-1])
     else:
         raise FileFormatNotFound(f"Could not infer file format from: {input_file}")
 
@@ -75,7 +87,7 @@ def infer_file_format_from_meta(metadata: Union[Metadata, dict]):
 def infer_file_format(input_file, metadata: Union[Metadata, dict] = None):
     file_format = None
     try:
-        file_format = infer_format_from_filepath(input_file)
+        file_format = infer_file_format_from_filepath(input_file)
     except FileFormatNotFound:
         if metadata:
             try:

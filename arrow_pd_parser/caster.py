@@ -1,12 +1,12 @@
 import warnings
-import numpy as np
-import pandas as pd
-
 from copy import deepcopy
 from datetime import datetime
+from typing import Callable, List, Union
+
+import numpy as np
+import pandas as pd
 from mojap_metadata import Metadata
 from pandas.api.types import is_numeric_dtype
-from typing import List, Union, Callable
 
 _allowed_type_categories = [
     "integer",

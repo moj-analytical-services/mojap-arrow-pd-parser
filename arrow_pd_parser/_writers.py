@@ -1,25 +1,22 @@
-from abc import ABC, abstractmethod
-from typing import List, Union, Dict, IO, Iterable
-import warnings
-from dataclasses import dataclass
 import datetime
-import os
 import io
-import smart_open
+import os
+import warnings
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import IO, Dict, Iterable, List, Union
 
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 import pyarrow as pa
-from pyarrow import parquet as pq
-
+import smart_open
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
 
 from arrow_pd_parser.utils import (
+    EngineNotImplementedError,
     FileFormat,
     is_s3_filepath,
-    EngineNotImplementedError,
     validate_and_enrich_metadata,
 )
 
@@ -27,13 +24,14 @@ from arrow_pd_parser.utils import (
 @dataclass
 class DataFrameFileWriter(ABC):
     """
-    Abstract class for writer functions used by writer API
+    Abstract class for writer functions used by writer API.
     Should just have a write method.
     """
 
-    copy = True
-    ignore_columns: List = None
-    drop_columns: List = None
+    compression: str = None
+    copy: bool = True
+    ignore_columns: List[str] = field(default_factory=list)
+    drop_columns: List[str] = field(default_factory=list)
     pd_integer: bool = True
     pd_string: bool = True
     pd_boolean: bool = True
@@ -49,11 +47,13 @@ class DataFrameFileWriter(ABC):
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> None:
-        """writes a DataFrame or iterator of DataFrames to the output file
+        """
+        Writes a DataFrame or iterator of DataFrames to the output file
         output_path: File to write either local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
           (not necessarily needed for writing especially for CSV)
-        **kwargs (optional): Additional kwargs are passed to write method."""
+        **kwargs (optional): Additional kwargs are passed to write method.
+        """
         return
 
 
@@ -66,11 +66,13 @@ class DataFrameTextFileWriter(DataFrameFileWriter):
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ) -> None:
-        """writes a DataFrame or iterator of DataFrames to the output file
+        """
+        Writes a DataFrame or iterator of DataFrames to the output file
         output_path: File to write either local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
           (not necessarily needed for writing especially for CSV)
-        **kwargs (optional): Additional kwargs are passed to write method."""
+        **kwargs (optional): Additional kwargs are passed to write method.
+        """
 
         if kwargs.get("mode", "w") != "w":
             raise ValueError("Only writing is supported, so 'mode' needs to equal 'w'")
@@ -106,7 +108,7 @@ class DataFrameTextFileWriter(DataFrameFileWriter):
 
 @dataclass
 class PandasCsvWriter(DataFrameTextFileWriter):
-    """write for CSV files"""
+    """Write a DataFrame to CSV file using pandas."""
 
     drop_index = True
 
@@ -117,7 +119,7 @@ class PandasCsvWriter(DataFrameTextFileWriter):
         metadata: Union[Metadata, dict] = None,
         first_chunk: bool = True,
         **kwargs,
-    ):
+    ) -> None:
         """
         Writes a pandas DataFrame to CSV
         f: File-like object to write either local or S3.
@@ -158,7 +160,7 @@ class PandasCsvWriter(DataFrameTextFileWriter):
 
 @dataclass
 class PandasJsonWriter(DataFrameTextFileWriter):
-    """write for JSON files"""
+    """Write to JSONL file using pandas"""
 
     def _write(
         self,
@@ -167,14 +169,14 @@ class PandasJsonWriter(DataFrameTextFileWriter):
         metadata: Union[Metadata, dict] = None,
         first_chunk: bool = True,
         **kwargs,
-    ):
+    ) -> None:
         """
-        Writes a pandas DataFrame to CSV
-        output_path: File to read either local or S3.
+        Writes a pandas DataFrame to JSONL
+        output_path: File to write either to local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
-          (not necessarily needed for writing especially for CSV)
+          (not necessarily needed for writing)
         **kwargs (optional): Additional kwargs are passed to pandas or awswrangler
-            to_csv method.
+            to_json method.
         """
 
         if self.copy:
@@ -203,12 +205,6 @@ class PandasJsonWriter(DataFrameTextFileWriter):
                 # Convert pd_timestamp string 'NaT' to NaN so PyArrow can read them
                 df_out[col].replace("NaT", np.nan, regex=False, inplace=True)
 
-        for col in df_out.columns:
-            # Convert period columns to strings so they're exported in a way
-            # Arrow can read
-            if pd.api.types.is_period_dtype(df_out[col]):
-                df_out[col] = df_out[col].dt.strftime("%Y-%m-%d %H:%M:%S")
-
         if kwargs.get("orient", "records") != "records":
             error_msg = (
                 "You are not allowed to specify orient in your kwargs "
@@ -230,11 +226,10 @@ class PandasJsonWriter(DataFrameTextFileWriter):
 
 
 @dataclass
-class ArrowParquetWriter(DataFrameFileWriter):
-    """write for Parquet files"""
-
-    version: str = "2.0"
-    compression: str = "snappy"
+class ArrowBaseWriter(DataFrameFileWriter):
+    """
+    Base writer class for arrow engine writers.
+    """
 
     def write(
         self,
@@ -244,19 +239,19 @@ class ArrowParquetWriter(DataFrameFileWriter):
         **kwargs,
     ) -> None:
         """
-        Writes a pandas DataFrame to CSV
-        output_path: File to read either local or S3.
+        Writes a pandas DataFrame
+        output_path: File to write to either local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
-          (not necessarily needed for writing especially for CSV)
+          (not necessarily needed for writing)
         **kwargs (optional): Additional kwargs are passed to
-          pyarrow.parquet.write_table
+          pyarrow writers
         """
 
         if kwargs is None:
             kwargs = {}
 
         kwargs["version"] = kwargs.get("version", self.version)
-        kwargs["compression"] = kwargs.get("compression", self.compression)
+        kwargs["compression"] = kwargs.get("compression", self.compression).upper()
 
         if kwargs["version"] != self.version:
             warning_msg = (
@@ -266,7 +261,7 @@ class ArrowParquetWriter(DataFrameFileWriter):
             )
             warnings.warn(warning_msg)
 
-        if kwargs["compression"] != self.compression:
+        if kwargs["compression"].casefold() != self.compression.casefold():
             warning_msg = (
                 f"Your kwargs for compression ({kwargs.get('compression')}) mismatches "
                 f"the writer's settings self.compression ({self.compression}). "
@@ -274,7 +269,7 @@ class ArrowParquetWriter(DataFrameFileWriter):
             )
             warnings.warn(warning_msg)
 
-        if not output_path.startswith("s3://"):
+        if not is_s3_filepath(output_path):
             dirs = os.path.dirname(output_path)
             if dirs:
                 os.makedirs(dirs, exist_ok=True)
@@ -289,10 +284,41 @@ class ArrowParquetWriter(DataFrameFileWriter):
             # Convert single dataframe to iterator
             df = iter([df])
 
+        #######
+
+        self._write(df, output_path, arrow_schema, **kwargs)
+
+    @abstractmethod
+    def _write(
+        self,
+        df: Iterable[pd.DataFrame],
+        output_path: Union[IO, str],
+        arrow_schema: pa.Schema = None,
+        **kwargs,
+    ) -> None:
+        return
+
+
+@dataclass
+class ArrowParquetWriter(ArrowBaseWriter):
+    """Writer for Parquet files using pyarrow."""
+
+    # TODO limit to valid compression options #####
+
+    compression: str = "SNAPPY"
+    version: str = "2.6"
+
+    def _write(
+        self,
+        df: Iterable[pd.DataFrame],
+        output_path: Union[IO, str],
+        arrow_schema: pa.Schema = None,
+        **kwargs,
+    ) -> None:
         table = pa.Table.from_pandas(next(df), schema=arrow_schema)
 
-        with pq.ParquetWriter(
-            output_path, schema=table.schema, **kwargs
+        with pa.parquet.ParquetWriter(
+            where=output_path, schema=table.schema, **kwargs
         ) as parquet_writer:
             parquet_writer.write_table(table)
             for chunk in df:
@@ -300,29 +326,74 @@ class ArrowParquetWriter(DataFrameFileWriter):
                 parquet_writer.write_table(table)
 
 
-def get_default_writer_from_file_format(
+@dataclass
+class ArrowCsvWriter(PandasCsvWriter):
+    """Use pandas engine choice to write CSV files using pyarrow."""
+
+    def arrow_write(self, **kwargs) -> None:
+        self._write(engine="pyarrow", **kwargs)
+
+
+def get_writer_for_file_format(
     file_format: Union[FileFormat, str],
-    engine: str = None,
+    writer_engine: str = None,
 ) -> DataFrameFileWriter:
+
     # Convert to enum
     if isinstance(file_format, str):
         file_format = FileFormat.from_string(file_format)
 
-    if engine is not None:
-        raise EngineNotImplementedError(
-            "We plan to support engine choice in the future. "
-            "For now we only support one engine per file type. "
-            "CSV: Pandas, JSON: Pandas, Parquet: Arrow"
-        )
+    implemented_engines = ["pandas", "arrow"]
+    default_engines = {
+        FileFormat.CSV: "pandas",
+        FileFormat.JSON: "pandas",
+        FileFormat.PARQUET: "arrow",
+    }
+    writers_dict = {
+        "pandas": {
+            FileFormat.CSV: PandasCsvWriter(),
+            FileFormat.JSON: PandasJsonWriter(),
+        },
+        "arrow": {
+            FileFormat.CSV: ArrowCsvWriter(),
+            FileFormat.PARQUET: ArrowParquetWriter(),
+        },
+    }
 
-    # Get writer
-    if file_format == FileFormat.CSV:
-        writer = PandasCsvWriter()
-    elif file_format == FileFormat.JSON:
-        writer = PandasJsonWriter()
-    elif file_format == FileFormat.PARQUET:
-        writer = ArrowParquetWriter()
-    else:
+    if file_format not in FileFormat:
         raise ValueError(f"Unsupported file_format {file_format}")
+
+    default_engine = default_engines[file_format]
+    default_writer = writers_dict[default_engine][file_format]
+
+    if writer_engine is None:
+        writer = default_writer
+
+    elif writer_engine.casefold() in implemented_engines:
+        writers_for_format = writers_dict[writer_engine]
+        try:
+            writer = writers_for_format[file_format]
+        except KeyError:
+            raise KeyError(
+                f"""
+                {writer_engine} is not currently supported for the {str(file_format).split('.')[-1].upper()} format.
+                The default engine for this {str(file_format).split('.')[-1].upper()} is {default_engine}.
+
+                To use the default engine either pass no argument to reader for
+                writer_engine, or pass "{default_engine}".
+                """  # noqa: E501
+            )
+
+    elif writer_engine.casefold() not in implemented_engines:
+        raise EngineNotImplementedError(
+            f"""
+            {writer_engine} is not currently supported.
+            The default for {str(file_format).split('.')[-1].upper()} file type is {default_engine}.
+
+            We plan to support more engine choice in the future. For now we support
+            pyarrow ('arrow') and pandas engines. Default engines are:
+            CSV: {default_engines[FileFormat.CSV]}, JSON: {default_engines[FileFormat.JSON]}, Parquet: {default_engines[FileFormat.PARQUET]}.
+            """  # noqa: E501
+        )
 
     return writer

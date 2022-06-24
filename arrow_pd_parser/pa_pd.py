@@ -1,7 +1,8 @@
-import numpy as np
-import pyarrow as pa
-import pandas as pd
 import warnings
+
+import numpy as np
+import pandas as pd
+import pyarrow as pa
 
 
 def generate_type_mapper(
@@ -14,7 +15,7 @@ def generate_type_mapper(
     """Specifies the pyarrow data types mapping to corresponding Pandas data types.
 
     Args:
-        pd_boolean: if not noe, use the new Pandas bool type. Defaults to None.
+        pd_boolean: if not None, use the new Pandas bool type. Defaults to None.
         pd_integer: if not None, use the new Pandas nullable integer type rather than
             defaulting to floats. Defaults to None.
         pd_string: if not None, use the new Pandas str type. Defaults to None.
@@ -86,9 +87,9 @@ def arrow_to_pandas(
     pd_timestamp_type: str = "datetime_object",
 ):
     """
-    Converts arrow table to stricter pandas datatypes based on options.
+    Converts arrow Table to stricter pandas datatypes based on options.
     Args:
-        arrow_table (pa.Table): An arrow table
+        arrow_table (pa.Table): An arrow Table
         pd_boolean (bool, optional): converts bools to the new pandas BooleanDtype.
             Otherwise will convert to bool (if not nullable)
             and object of (True, False, None) if nulls exist. Defaults to True.

@@ -1,7 +1,0 @@
-#!/bin/sh
-#
-# commit without checks by adding --no-verify to your commit command
-
-# add .version
-poetry version | awk '{print "__version__ = \"" $2 "\""}' > arrow_pd_parser/__init__.py
-git add arrow_pd_parser/__init__.py

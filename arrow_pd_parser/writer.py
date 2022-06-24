@@ -1,4 +1,4 @@
-from typing import Union, Iterator
+from typing import Iterator, Union
 
 import pandas as pd
 from mojap_metadata import Metadata
@@ -7,9 +7,9 @@ from arrow_pd_parser._writers import (
     ArrowParquetWriter,
     PandasCsvWriter,
     PandasJsonWriter,
-    get_default_writer_from_file_format,
+    get_writer_for_file_format,
 )
-from arrow_pd_parser.utils import infer_file_format, FileFormat
+from arrow_pd_parser.utils import FileFormat, infer_file_format
 
 
 def write(
@@ -17,6 +17,7 @@ def write(
     output_path: str,
     metadata: Union[Metadata, dict] = None,
     file_format: Union[FileFormat, str] = None,
+    writer_engine: str = None,
     **kwargs,
 ) -> pd.DataFrame:
     """
@@ -38,11 +39,13 @@ def write(
     else:
         pass
 
-    writer = get_default_writer_from_file_format(file_format=file_format)
+    writer = get_writer_for_file_format(
+        file_format=file_format, writer_engine=writer_engine
+    )
 
     return writer.write(
-        df,
-        output_path,
+        df=df,
+        output_path=output_path,
         metadata=metadata,
         **kwargs,
     )

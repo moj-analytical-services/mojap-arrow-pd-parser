@@ -1,11 +1,11 @@
-from mojap_metadata.metadata.metadata import Metadata
-from mojap_metadata.converters.arrow_converter import ArrowConverter
+from typing import IO, Union
+
 import pyarrow as pa
+from mojap_metadata.converters.arrow_converter import ArrowConverter
+from mojap_metadata.metadata.metadata import Metadata
 from pyarrow import csv, json, parquet
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
-
-from typing import Union, IO
 
 
 def _get_arrow_schema(schema: Union[pa.schema, Metadata, dict]):
@@ -36,11 +36,11 @@ def update_existing_schema(
     Args:
         current_schema (pa.Schema): Schema to update
         new_schema (pa.Schema): Schema with fields that you wish to be
-          used to update current_schema
+            used to update current_schema
     Returns:
         pa.Schema: Returns a schema with the same column order as
-        current_schema but with the fields updated for any fields
-        that matched new_schema.
+            current_schema but with the fields updated for any fields
+            that matched new_schema.
     """
 
     updated_schema = pa.schema([])
@@ -53,30 +53,59 @@ def update_existing_schema(
     return updated_schema
 
 
+def validate_arrow_schema(arrow_schema: pa.Schema, source_table: pa.Table) -> pa.Schema:
+    """
+    Checks for presence of column types that cannot be cast by Table.cast methods
+    (e.g. pa.string() -> pa.date32()) in supplied schema. These column types are
+    replaced with string in the supplied schema to prevent errors being raised during
+    casting.
+    Args:
+        arrow_schema (pa.Schema): Supplied schema to validate
+        source_table (pa.Table): table that is to be cast to the arrow_schema
+    Returns:
+        pa.Schema: Returns a schema with any uncastable columns replaced as string
+            type.
+    """
+
+    unconvertable_types = {"date32": pa.types.is_date32, "date64": pa.types.is_date64}
+
+    for unconvertable in unconvertable_types.values():
+        if any(unconvertable(i) for i in arrow_schema.types):
+            for i, field in enumerate(arrow_schema.names):
+                if unconvertable(arrow_schema.types[i]):
+                    source_idx = source_table.schema.get_field_index(field)
+                    if pa.types.is_string(source_table.schema.types[source_idx]):
+                        arrow_schema = arrow_schema.set(i, pa.field(field, pa.string()))
+
+    return arrow_schema
+
+
 def cast_arrow_table_to_schema(
-    tab: pa.Table,
+    source_table: pa.Table,
     schema: Union[pa.Schema, None] = None,
     expect_full_schema: bool = True,
-):
-    """Casts an arrow schema to a new or partial schema
+) -> pa.Table:
+    """
+    Casts an arrow schema to a new or partial schema
     Args:
-        tab (pa.Table): An arrow table
+        source_table (pa.Table): An arrow table
         schema (Union[pa.Schema, None], optional): [description]. Defaults to None.
-        expect_full_schema (bool, optional): if True, pyarrow reader will
-            expect the input schema to have fields for every col in the
-            input file. If False, then will only cast columns that
-            are listed in the schema, leaving all other columns to their
-            default type on read.
+        expect_full_schema (bool, optional): if True, pyarrow reader will expect the
+            input schema to have fields for every col in the input file. If False, then
+            will only cast columns that are listed in the schema, leaving all other
+            columns to their default type on read.
     """
 
     if expect_full_schema:
         update_schema = schema
     else:
-        update_schema = update_existing_schema(tab.schema, schema)
+        update_schema = update_existing_schema(source_table.schema, schema)
 
-    new_tab = tab.cast(update_schema)
+    update_schema = validate_arrow_schema(update_schema, source_table)
 
-    return new_tab
+    new_table = source_table.cast(update_schema)
+
+    return new_table
 
 
 def pa_read_csv(
@@ -85,7 +114,8 @@ def pa_read_csv(
     expect_full_schema: bool = True,
     **kwargs,
 ):
-    """Read a csv file into an Arrow table.
+    """
+    Read a csv file into an Arrow table.
     Args:
         input_file (Union[IO, str]): the CSV you want to read. string, path or
             file-like object.
@@ -124,7 +154,8 @@ def pa_read_csv_to_pandas(
     pd_timestamp_type: str = "datetime_object",
     **kwargs,
 ):
-    """Read a csv file into an Arrow table and convert it to a Pandas DataFrame.
+    """
+    Read a csv file into an Arrow table and convert it to a Pandas DataFrame.
     Args:
         input_file (Union[IO, str]): the CSV you want to read. string, path or
             file-like object.
@@ -168,7 +199,8 @@ def pa_read_json(
     expect_full_schema: bool = True,
     **kwargs,
 ):
-    """Read a jsonlines file into an Arrow table.
+    """
+    Read a jsonlines file into an Arrow table.
     Args:
         input_file (Union[IO, str]): the JSONL you want to read. string, path or
             file-like object.
@@ -208,7 +240,8 @@ def pa_read_json_to_pandas(
     pd_timestamp_type: str = "datetime_object",
     **kwargs,
 ):
-    """Read a jsonlines file into an Arrow table and convert it to a Pandas DataFrame.
+    """
+    Read a jsonlines file into an Arrow table and convert it to a Pandas DataFrame.
     Args:
         input_file (Union[IO, str]): the JSONL you want to read. string, path or
             file-like object.
@@ -253,9 +286,8 @@ def pa_read_parquet(
     expect_full_schema: bool = True,
     **kwargs,
 ):
-
     """
-    reads parquet file to in memory arrow table
+    Reads parquet file to in memory arrow table
     Args:
         input_file (str): path (s3 or local) to the parquet file to read in
         schema (pa.Schema, optional): schema to cast the data to. Defaults to None.
@@ -292,7 +324,7 @@ def pa_read_parquet_to_pandas(
     **kwargs,
 ):
     """
-    reads a parquet file to pandas dataframe with various type casting options
+    Reads a parquet file to pandas dataframe with various type casting options
     Args:
         input_file (str): path (s3 or local) to the parquet file to read in
         schema (pa.Schema, optional): schema to cast the data to. Defaults to None.
