@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arrow_pd_parser"
-version = "1.0.5"
+version = "1.2.0"
 description = "MoJ arrow-pd-parser"
 authors = ["Karik Isichei <karik.isichei@digital.justice.gov.uk>",
            "Alec Johnson <alec.johnson@digital.justice.gov.uk>",
@@ -11,6 +11,8 @@ authors = ["Karik Isichei <karik.isichei@digital.justice.gov.uk>",
            "Anthony Cody <anthony.cody@digital.justice.gov.uk>",
            "George Kelly <george.kelly@digital.justice.gov.uk>",
            "Stephen Bias <stephen.bias@digital.justice.gov.uk>",
+           "Mike Ratford <michael.ratford@justice.gov.uk>",
+           "Tom Webber <thomas.webber@digital.justice.gov.uk>",
            ]
 
 readme = "README.md"
