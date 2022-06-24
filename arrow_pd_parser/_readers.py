@@ -207,7 +207,7 @@ class PandasCsvReader(PandasBaseReader):
 
 @dataclass
 class PandasJsonReader(PandasBaseReader):
-    """Reader for JSON files."""
+    """Reader for JSONL files."""
 
     def read(
         self,
@@ -358,6 +358,12 @@ class ArrowParquetReader(ArrowBaseReader):
         input_path,
         **kwargs,
     ) -> pa.Table:
+
+        if is_s3_filepath(input_path):
+            reader_fs, input_path = pa.fs.FileSystem.from_uri(input_path)
+            if "filesystem" not in kwargs:
+                kwargs["filesystem"] = reader_fs
+
         table = pq.read_table(input_path, **kwargs)
         return table
 
@@ -375,11 +381,17 @@ class ArrowCsvReader(ArrowBaseReader):
         input_path,
         **kwargs,
     ) -> pa.Table:
-        table = pa.csv.read_csv(
-            input_path,
-            convert_options=self.reader_options,
-            **kwargs,
-        )
+        if is_s3_filepath(input_path):
+            reader_fs, abstract_path = pa.fs.FileSystem.from_uri(input_path)
+            with reader_fs.open_input_file(abstract_path) as csv_file:
+                table = pa.csv.read_csv(
+                    csv_file, convert_options=self.reader_options, **kwargs
+                )
+        else:
+            table = pa.csv.read_csv(
+                input_path, convert_options=self.reader_options, **kwargs
+            )
+
         return table
 
 

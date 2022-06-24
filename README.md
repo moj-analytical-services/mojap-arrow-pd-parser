@@ -76,7 +76,7 @@ writer.parquet.write(df1)
 
 ### Use of Metadata
 
-The main usefulness of this repo comes from specifying metadata for the data you want. We are going to focus on CSV and JSONL in this section as Parquet becomes a bit more nuanced as it encodes data types (unlike CSV and JSON that can be more vague).
+The main usefulness of this repo comes from specifying metadata for the data you want. We are going to focus on CSV and JSONL in this section as Parquet becomes a bit more nuanced as it encodes data types (unlike CSV and JSONL that can be more vague).
 
 When reading and writing you can specify metadata (using our [metadata schema definitions](https://github.com/moj-analytical-services/mojap-metadata)) to ensure the data read into pandas conforms.
 
@@ -197,12 +197,12 @@ df2 = specific_csv.read("tests/data/all_types.csv")
 
 #### Reading and Writing Parquet
 
-The default parquet reader and writer uses Arrow under the hood. This also means it uses a different method for casting datatypes (it is done in Arrow not with Pandas). Because parquet is stricter most likely if there is a deviation from your metadata it will fail to cast. The when provided metadata reader and writer API forces the data to that metadata, this makes sense for CSV and JSON but may make less sense for parquet. Therefore when using the parquet reader and writer you might want to consider if you want to provide your metadata (this may still be advantagous to check that the parquet matches metadata schema you have for the data).
+The default parquet reader and writer uses Arrow under the hood. This also means it uses a different method for casting datatypes (it is done in Arrow not with Pandas). Because parquet is stricter most likely if there is a deviation from your metadata it will fail to cast. The when provided metadata reader and writer API forces the data to that metadata, this makes sense for CSV and JSONL but may make less sense for parquet. Therefore when using the parquet reader and writer you might want to consider if you want to provide your metadata (this may still be advantagous to check that the parquet matches metadata schema you have for the data).
 
 ```python
 from arrow_pd_parser import reader, writer
 
-# Note all readers (CSV, JSON and Parquet) support S3 paths in the following way
+# Note all readers (CSV, JSONL and Parquet) support S3 paths in the following way
 df = reader.parquet.read("s3://bucket/in.snappy.parquet")
 writer.parquet.write("s3://bucket/out.snappy.parquet")
 

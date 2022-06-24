@@ -9,8 +9,8 @@ test:
 	python -m pytest --version
 	python -m pytest tests
 ## Format your code using black
-.PHONY: black
-black:
+.PHONY: format
+format:
 	python -m black --version
 	python -m black .
 ## Check linting with flake8

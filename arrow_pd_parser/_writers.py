@@ -171,7 +171,7 @@ class PandasJsonWriter(DataFrameTextFileWriter):
         **kwargs,
     ) -> None:
         """
-        Writes a pandas DataFrame to JSON
+        Writes a pandas DataFrame to JSONL
         output_path: File to write either to local or S3.
         metadata: A metadata object or dict to cast the dataframe to before writing
           (not necessarily needed for writing)
