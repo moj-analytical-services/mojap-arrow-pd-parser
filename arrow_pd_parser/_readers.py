@@ -276,6 +276,16 @@ class ArrowBaseReader(DataFrameFileReader):
         **kwargs (optional): Additional kwargs are passed to the arrow reader
             arrow.parquet.read_table
         """
+
+        if kwargs is None:
+            kwargs = {}
+
+        # filesystem handles determining local vs. s3 path handling
+        if "filesystem" not in kwargs:
+            reader_fs, abstract_path = pa.fs.FileSystem.from_uri(input_path)
+            kwargs["filesystem"] = reader_fs
+            input_path = abstract_path
+
         if is_iterable:
             return self._read_iterable(
                 input_path=input_path,
@@ -358,12 +368,6 @@ class ArrowParquetReader(ArrowBaseReader):
         input_path,
         **kwargs,
     ) -> pa.Table:
-
-        if is_s3_filepath(input_path):
-            reader_fs, input_path = pa.fs.FileSystem.from_uri(input_path)
-            if "filesystem" not in kwargs:
-                kwargs["filesystem"] = reader_fs
-
         table = pq.read_table(input_path, **kwargs)
         return table
 
@@ -381,15 +385,12 @@ class ArrowCsvReader(ArrowBaseReader):
         input_path,
         **kwargs,
     ) -> pa.Table:
-        if is_s3_filepath(input_path):
-            reader_fs, abstract_path = pa.fs.FileSystem.from_uri(input_path)
-            with reader_fs.open_input_file(abstract_path) as csv_file:
-                table = pa.csv.read_csv(
-                    csv_file, convert_options=self.reader_options, **kwargs
-                )
-        else:
+
+        reader_fs = kwargs["filesystem"]
+
+        with reader_fs.open_input_file(input_path) as csv_file:
             table = pa.csv.read_csv(
-                input_path, convert_options=self.reader_options, **kwargs
+                csv_file, convert_options=self.reader_options, **kwargs
             )
 
         return table
