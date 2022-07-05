@@ -1,4 +1,5 @@
 import warnings
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import IO, Callable, Dict, Iterable, List, Optional, Union
@@ -282,6 +283,11 @@ class ArrowBaseReader(DataFrameFileReader):
 
         # filesystem handles determining local vs. s3 path handling
         if "filesystem" not in kwargs:
+            # from uri doesn't like relative paths
+            input_path = (
+                input_path if is_s3_filepath(input_path)
+                else os.path.abspath(input_path)
+            )
             reader_fs, abstract_path = pa.fs.FileSystem.from_uri(input_path)
             kwargs["filesystem"] = reader_fs
             input_path = abstract_path
