@@ -285,7 +285,8 @@ class ArrowBaseReader(DataFrameFileReader):
         if "filesystem" not in kwargs:
             # from uri doesn't like relative paths
             input_path = (
-                input_path if is_s3_filepath(input_path) else os.path.abspath(input_path)
+                input_path if is_s3_filepath(input_path)
+                else os.path.abspath(input_path)
             )
             reader_fs, abstract_path = pa.fs.FileSystem.from_uri(input_path)
             kwargs["filesystem"] = reader_fs
