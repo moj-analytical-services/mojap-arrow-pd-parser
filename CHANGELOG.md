@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 1.3.1 2022-07-29
+- Faster date casting.
+
+## 1.3.0 2022-07-13
+- Release for compatibility with code using numpy>1.22 for security reasons. As a result Python 3.7 is no longer supported.
+
+## 1.2.1 2022-07-05
+- fixed the ability to use relative local paths due to from_uri not accepting relative paths
+
+## 1.2.0 2022-06-27
+- Reader/writer engine choice added. Provide the reader_engine parameter to reader.read() or the writer_engine to writer.write() to specify a particular reader for a given file or format.
+
+## 1.1.0 2022-05-12
+- Chunked reads are now possible; use chunksize as a parameter to reader.read to return an iterator of pandas dataframes, useful for dealing with files that would otherwise exceed memory. This iterator can be used as an input to writer.write.
+
+## 1.0.4 2022-03-25
+- Dataframes are no longer mutated when writing
+
+## 1.0.3 2021-11-29
+- made more consistent the use of type_category so that if it wasn't present when casting data it would be created
+
 ## 1.0.2 2021-09-29
 - the writer now makes the folder path it is writing to if it does not exist when writing locally
 - added test for above addition
