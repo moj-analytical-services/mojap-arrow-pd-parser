@@ -44,17 +44,22 @@ def _convert_str_to_datetime_obj_series(
     if str_datetime_format is None:
         str_datetime_format = "%Y-%m-%d" if is_date else "%Y-%m-%d %H:%M:%S"
 
-    # Need to create a new series to force a Series with an object dtype
-    s_new = pd.Series([None] * len(s), dtype=object)
-    for index, value in s.items():
-        check_value = "" if pd.isna(value) else value
-        if not check_value:
-            continue  # Leave as None
-        else:
-            value = datetime.strptime(value, str_datetime_format)
-            if is_date:
-                value = value.date()
-            s_new.loc[index] = value
+    # As a new Series is created keep the original index
+    original_index = s.index
+
+    # Use to_datetime to convert dates to pandas datetimes,
+    # convert to an array of datetime.datetimes, and put those back in a Series
+    s_new = pd.Series(
+        pd.to_datetime(s, format=str_datetime_format).dt.to_pydatetime(), dtype=object
+    )
+
+    s_new[s_new.isna() | (s_new == "")] = None
+
+    if is_date:
+        s_new = s_new.apply(lambda d: d.date() if d else None)
+
+    # Restore the original index
+    s_new.index = original_index
 
     return s_new
 
