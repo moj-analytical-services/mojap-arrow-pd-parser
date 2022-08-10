@@ -176,7 +176,9 @@ def convert_str_to_timestamp_series(
     if pd_type == "pd_timestamp":
         s = _convert_str_to_ns_timestamp_series(s, str_datetime_format, ts_errors)
     elif pd_type == "datetime_object":
-        s = _convert_str_to_datetime_obj_series(s, is_date, str_datetime_format, ts_errors)
+        s = _convert_str_to_datetime_obj_series(
+            s, is_date, str_datetime_format, ts_errors
+        )
     elif pd_type == "pd_period":
         raise NotImplementedError(
             "Conversion to period is not available yet for this caster"
