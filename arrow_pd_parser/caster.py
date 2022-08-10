@@ -24,11 +24,13 @@ class PandasCastError(Exception):
 
 def _convert_str_to_ns_timestamp_series(
     s: pd.Series,
+    ts_erorrs: str,
     str_datetime_format=None,
 ) -> pd.Series:
     s = pd.to_datetime(
         s,
         format=str_datetime_format,
+        errors=ts_erorrs,
     )
 
     return s
@@ -37,6 +39,7 @@ def _convert_str_to_ns_timestamp_series(
 def _convert_str_to_datetime_obj_series(
     s: pd.Series,
     is_date,
+    ts_erorrs: str,
     str_datetime_format=None,
 ) -> pd.Series:
 
@@ -49,7 +52,9 @@ def _convert_str_to_datetime_obj_series(
     # Use to_datetime to convert dates to pandas datetimes,
     # convert to an array of datetime.datetimes, and put those back in a Series
     s_new = pd.Series(
-        pd.to_datetime(s, format=str_datetime_format).dt.to_pydatetime(), dtype=object
+        pd.to_datetime(
+            s, format=str_datetime_format, errors=ts_erorrs
+        ).dt.to_pydatetime(), dtype=object
     )
 
     s_new[s_new.isna() | (s_new == "")] = None
@@ -166,12 +171,12 @@ def convert_to_string_series(s: pd.Series, pd_string: bool) -> pd.Series:
 
 
 def convert_str_to_timestamp_series(
-    s: pd.Series, is_date, pd_type, str_datetime_format=None
+    s: pd.Series, is_date, pd_type, str_datetime_format=None, ts_errors: str
 ) -> pd.Series:
     if pd_type == "pd_timestamp":
-        s = _convert_str_to_ns_timestamp_series(s, str_datetime_format)
+        s = _convert_str_to_ns_timestamp_series(s, str_datetime_format, ts_erorrs)
     elif pd_type == "datetime_object":
-        s = _convert_str_to_datetime_obj_series(s, is_date, str_datetime_format)
+        s = _convert_str_to_datetime_obj_series(s, is_date, str_datetime_format, ts_errors)
     elif pd_type == "pd_period":
         raise NotImplementedError(
             "Conversion to period is not available yet for this caster"
@@ -194,6 +199,7 @@ def cast_pandas_column_to_schema(
     pd_date_type: str = "datetime_object",
     pd_timestamp_type: str = "datetime_object",
     num_errors="raise",
+    ts_errors="raise",
     bool_map=None,
 ) -> pd.Series:
 
@@ -226,6 +232,7 @@ def cast_pandas_column_to_schema(
                 pd_type=pd_date_type if is_date else pd_timestamp_type,
                 is_date=is_date,
                 str_datetime_format=metacol.get("datetime_format"),
+                ts_errors=ts_errors,
             )
         elif metacol["type_category"] in complex_type_categories:
             warnings.warn(
