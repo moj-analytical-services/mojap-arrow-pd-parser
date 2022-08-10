@@ -168,7 +168,7 @@ def test_boolean_conversion(s, expected_category, bool_map):
     "pd_date_type", ["datetime_object", "pd_timestamp", "pd_period"]
 )
 def test_timestamp_conversion(s, dt_fmt, is_date, pd_date_type):
-    ts_errors = "raise" # not testing what pandas does!
+    ts_errors = "raise"  # not testing what pandas does!
     if pd_date_type == "pd_period":
         with pytest.raises(NotImplementedError):
             s_ = convert_str_to_timestamp_series(
