@@ -24,13 +24,13 @@ class PandasCastError(Exception):
 
 def _convert_str_to_ns_timestamp_series(
     s: pd.Series,
-    ts_erorrs: str,
+    ts_errors: str,
     str_datetime_format=None,
 ) -> pd.Series:
     s = pd.to_datetime(
         s,
         format=str_datetime_format,
-        errors=ts_erorrs,
+        errors=ts_errors,
     )
 
     return s
@@ -39,7 +39,7 @@ def _convert_str_to_ns_timestamp_series(
 def _convert_str_to_datetime_obj_series(
     s: pd.Series,
     is_date,
-    ts_erorrs: str,
+    ts_errors: str,
     str_datetime_format=None,
 ) -> pd.Series:
 
@@ -53,7 +53,7 @@ def _convert_str_to_datetime_obj_series(
     # convert to an array of datetime.datetimes, and put those back in a Series
     s_new = pd.Series(
         pd.to_datetime(
-            s, format=str_datetime_format, errors=ts_erorrs
+            s, format=str_datetime_format, errors=ts_errors
         ).dt.to_pydatetime(), dtype=object
     )
 
@@ -171,10 +171,10 @@ def convert_to_string_series(s: pd.Series, pd_string: bool) -> pd.Series:
 
 
 def convert_str_to_timestamp_series(
-    s: pd.Series, is_date, pd_type, str_datetime_format=None, ts_errors: str
+    s: pd.Series, is_date, pd_type, ts_errors: str, str_datetime_format=None
 ) -> pd.Series:
     if pd_type == "pd_timestamp":
-        s = _convert_str_to_ns_timestamp_series(s, str_datetime_format, ts_erorrs)
+        s = _convert_str_to_ns_timestamp_series(s, str_datetime_format, ts_errors)
     elif pd_type == "datetime_object":
         s = _convert_str_to_datetime_obj_series(s, is_date, str_datetime_format, ts_errors)
     elif pd_type == "pd_period":
