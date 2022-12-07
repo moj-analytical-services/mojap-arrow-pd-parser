@@ -9,6 +9,7 @@ from typing import IO, Dict, Iterable, List, Union
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.parquet as pq
 import smart_open
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
@@ -317,7 +318,7 @@ class ArrowParquetWriter(ArrowBaseWriter):
     ) -> None:
         table = pa.Table.from_pandas(next(df), schema=arrow_schema)
 
-        with pa.parquet.ParquetWriter(
+        with pq.ParquetWriter(
             where=output_path, schema=table.schema, **kwargs
         ) as parquet_writer:
             parquet_writer.write_table(table)

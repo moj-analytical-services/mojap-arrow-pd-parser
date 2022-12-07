@@ -5,6 +5,7 @@ from typing import IO, Union
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.parquet as pq
 from mojap_metadata import Metadata
 
 from arrow_pd_parser._arrow_parsers import _get_arrow_schema
@@ -114,4 +115,4 @@ def pd_to_parquet(
 
     table = pa.Table.from_pandas(df, **from_pandas_kwargs, schema=schema)
 
-    pa.parquet.write_table(table, output_file, **write_table_kwargs)
+    pq.write_table(table, output_file, **write_table_kwargs)
