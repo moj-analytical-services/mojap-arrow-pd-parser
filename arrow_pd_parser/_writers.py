@@ -325,6 +325,22 @@ class ArrowParquetWriter(ArrowBaseWriter):
             for chunk in df:
                 table = pa.Table.from_pandas(chunk, schema=arrow_schema)
                 parquet_writer.write_table(table)
+        written_arrow_schema = pa.read_schema(output_path)
+        mismatched_types = {}
+        for i, written_col in enumerate(written_arrow_schema):
+            schema_col = arrow_schema[i]
+            if not written_col.equals(schema_col):
+                mismatched_types[written_col.name] = {
+                    "type_in_schema": schema_col.type,
+                    "type_in_written_file": written_col.type,
+                }
+        if mismatched_types:
+            warnings.warn(
+                f"""
+                Arrow has converted the types of some columns.
+                Consider updating your metadata to match the data more accurately.
+                {mismatched_types}"""
+            )
 
 
 @dataclass
