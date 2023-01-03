@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
+## 1.3.4 2023-01-03
+
+- Adds warning if parquet writer writes a file with different schema from the provided metadata (see [this issue](https://github.com/apache/arrow/issues/15032))
+## 1.3.3 2022-12-19
+
+- fixing bug `"pyarrow has no attribute 'parquet'"` (#87)
 ## 1.3.2 2022-10-07
 - Updated dependencies.
 
