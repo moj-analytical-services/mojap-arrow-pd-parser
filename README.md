@@ -197,7 +197,9 @@ df2 = specific_csv.read("tests/data/all_types.csv")
 
 #### Reading and Writing Parquet
 
-The default parquet reader and writer uses Arrow under the hood. This also means it uses a different method for casting datatypes (it is done in Arrow not with Pandas). Because parquet is stricter most likely if there is a deviation from your metadata it will fail to cast. The when provided metadata reader and writer API forces the data to that metadata, this makes sense for CSV and JSONL but may make less sense for parquet. Therefore when using the parquet reader and writer you might want to consider if you want to provide your metadata (this may still be advantagous to check that the parquet matches metadata schema you have for the data).
+The default parquet reader and writer uses Arrow under the hood. This also means it uses a different method for casting datatypes (it is done in Arrow not with Pandas). Because parquet is stricter, most likely if there is a deviation from your metadata it will fail to cast. When you provide metadata to the reader and writer, the API forces the data to that metadata. This makes sense for CSV and JSONL, but may make less sense for parquet. Therefore when using the parquet reader and writer you might want to consider if you want to provide your metadata. This may still be advantagous to check that the parquet matches metadata schema you have for the data.
+
+In some cases (see [this issue](https://github.com/apache/arrow/issues/15032)) pyarrow will silently convert some data types when writing a parquet file, overriding the provided metadata. The `writer` will raise a warning if this happens, and you may wish to update your metdata so it matches the type that arrow expects.
 
 ```python
 from arrow_pd_parser import reader, writer
