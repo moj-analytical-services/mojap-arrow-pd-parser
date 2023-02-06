@@ -53,8 +53,11 @@ def read(
     if isinstance(chunksize, str):
         max_bytes = human_to_bytes(chunksize)
         test_reader = get_reader_for_file_format(file_format=file_format)
-        df = next(test_reader.read(input_path))
+        # Read 1000 lines
+        df = next(test_reader.read(input_path, is_iterable=True, chunksize=1000))
+        # How much memory does that take?
         bytes_per_1000 = df.memory_usage(deep=True).sum()
+        # Calculate the number of lines to read per chunk
         chunksize = int(1000 * max_bytes / bytes_per_1000)
 
     reader = get_reader_for_file_format(
