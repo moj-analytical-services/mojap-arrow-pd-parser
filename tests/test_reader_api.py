@@ -211,6 +211,22 @@ def test_default_read(data_format, use_meta, test_meta, df_all_types):
     assert_frame_equal(df_default_inferred, df_default_specified)
 
 
+def test_read_ignore_unnamed_in_csv_reader(df_all_types):
+    with tempfile.NamedTemporaryFile(suffix=".csv") as temp_file_name:
+        temp_out_file = temp_file_name.name
+
+    df = df_all_types.copy(deep=True)
+    df["Unnamed: 0"] = np.nan
+    writer.write(df=df, output_path=temp_out_file)
+
+    inferred_df = reader.read(
+        input_path=temp_out_file,
+        ignore_unnamed_columns=True,
+    )
+
+    assert (inferred_df.columns == df_all_types.columns).all()
+
+
 @pytest.mark.parametrize(
     "data_format, supplied_reader, reader_engine", test_valid_file_types
 )
