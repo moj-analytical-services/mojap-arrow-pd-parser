@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## 1.3.8 2023-06-13
+
+- Fixes issue with checking parquet schema following write
+  (see [this issue](https://github.com/moj-analytical-services/mojap-arrow-pd-parser/issues/96)). See PR [99](https://github.com/moj-analytical-services/mojap-arrow-pd-parser/pull/99) for more
+  information.
+- Allows ability to ignore unnamed columns on using the pandas csv
+  reader by setting `ignore_unnamed_columns` to `True`. See PR [98](https://github.com/moj-analytical-services/mojap-arrow-pd-parser/pull/99) for more information.
+
 ## 1.3.4 2023-01-03
 
 - Adds warning if parquet writer writes a file with different schema from the provided metadata (see [this issue](https://github.com/apache/arrow/issues/15032))
