@@ -1,9 +1,17 @@
+import io
 import logging
 import os
 import tempfile
+from contextlib import contextmanager
+from pathlib import Path
 
+import awswrangler as wr
+import boto3
 import pytest
-from arrow_pd_parser import reader, writer
+from dataengineeringutils3.s3 import s3_path_to_bucket_key
+from moto import mock_s3
+
+from arrow_pd_parser import _writers, reader, writer
 from arrow_pd_parser._writers import (
     ArrowCsvWriter,
     ArrowParquetWriter,
@@ -73,6 +81,49 @@ invalid_file_type_engine_combinations = [
 ]
 
 invalid_engines = ["spark", "dplyr"]
+
+
+class MockS3FilesystemReadInputStream:
+    @staticmethod
+    @contextmanager
+    def open_input_stream(s3_file_path_in: str) -> io.BytesIO:
+        s3_resource = boto3.resource("s3")
+        bucket, key = s3_path_to_bucket_key(s3_file_path_in)
+        obj_bytes = s3_resource.Object(bucket, key).get()["Body"].read()
+        obj_io_bytes = io.BytesIO(obj_bytes)
+        try:
+            yield obj_io_bytes
+        finally:
+            obj_io_bytes.close()
+
+    @staticmethod
+    @contextmanager
+    def open_input_file(s3_file_path_in: str):
+        s3_client = boto3.client("s3")
+        bucket, key = s3_path_to_bucket_key(s3_file_path_in)
+        tmp_file = tempfile.NamedTemporaryFile(suffix=Path(key).suffix)
+        s3_client.download_file(bucket, key, tmp_file.name)
+        yield tmp_file.name
+
+
+def mock_get_file(*args, **kwargs):
+    return MockS3FilesystemReadInputStream()
+
+
+class MockParquetWriter:
+    def __enter__(self, *args, **kwargs):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        return self
+
+    @staticmethod
+    def write_table(*args, **kwargs):
+        pass
+
+
+def mock_write_table(*args, **kwargs):
+    return MockParquetWriter()
 
 
 @pytest.mark.parametrize("data_format, expected_class", test_default_file_types_writer)
@@ -222,3 +273,26 @@ def test_no_error_when_write_local_path_not_exist(data_format):
         out_file = os.path.join(tmp_dir, file_path)
 
     writer.write(df, out_file)
+
+
+@mock_s3
+def test_read_parquet_schema_on_write_to_s3(df_all_types, monkeypatch):
+    s3_client = boto3.client("s3")
+
+    _ = s3_client.create_bucket(
+        Bucket="my-bucket",
+        CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+    )
+
+    with tempfile.NamedTemporaryFile(suffix=".snappy.parquet") as tmp:
+        writer.write(df_all_types, tmp.name)
+        schema = _writers.pq.read_schema(tmp.name)
+        output_path = f"s3://my-bucket/{Path(tmp.name).name}"
+        wr.s3.upload(tmp.name, output_path)
+
+    _ = monkeypatch.setattr(_writers.fs, "S3FileSystem", mock_get_file)
+    _ = monkeypatch.setattr(_writers.pq, "ParquetWriter", mock_write_table)
+
+    _ = _writers.ArrowParquetWriter()._write(
+        df=iter([df_all_types]), output_path=output_path, arrow_schema=schema
+    )

@@ -9,6 +9,7 @@ from typing import IO, Dict, Iterable, List, Union
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.fs as fs
 import pyarrow.parquet as pq
 import smart_open
 from mojap_metadata import Metadata
@@ -325,7 +326,20 @@ class ArrowParquetWriter(ArrowBaseWriter):
             for chunk in df:
                 table = pa.Table.from_pandas(chunk, schema=arrow_schema)
                 parquet_writer.write_table(table)
-        written_arrow_schema = pq.read_schema(output_path)
+
+        if output_path.startswith("s3://"):
+            s3 = fs.S3FileSystem(
+                region=os.getenv(
+                    "AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "eu-west-1")
+                )
+            )
+            pa_pth = output_path.replace("s3://", "")
+            with s3.open_input_file(pa_pth) as file:
+                written_arrow_schema = pq.read_schema(file)
+
+        else:
+            written_arrow_schema = pq.read_schema(output_path)
+
         if arrow_schema:
             mismatched_types = {}
             for i, written_col in enumerate(written_arrow_schema):
@@ -356,7 +370,6 @@ def get_writer_for_file_format(
     file_format: Union[FileFormat, str],
     writer_engine: str = None,
 ) -> DataFrameFileWriter:
-
     # Convert to enum
     if isinstance(file_format, str):
         file_format = FileFormat.from_string(file_format)
