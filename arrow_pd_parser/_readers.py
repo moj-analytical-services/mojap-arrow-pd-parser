@@ -185,6 +185,11 @@ class PandasCsvReader(PandasBaseReader):
             if "dtype" not in kwargs:
                 kwargs["dtype"] = str
 
+        if "ignore_unnamed_columns" in kwargs:
+            if "usecols" not in kwargs:
+                kwargs["usecols"] = lambda c: not c.startswith("Unnamed:")
+            _ = kwargs.pop("ignore_unnamed_columns")
+
         if is_s3_filepath(input_path):
             reader = wr.s3.read_csv
         else:
