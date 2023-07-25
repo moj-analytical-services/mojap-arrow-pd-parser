@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## 1.3.9 2023-07-25
+
+- Loosens requirements to allow python 3.11
+
 ## 1.3.8 2023-06-13
 
 - Fixes issue with checking parquet schema following write
