@@ -35,13 +35,13 @@ def datetime_object_as_str(x):
     "in_type,pd_timestamp_type,out_type",
     [
         ("timestamp[s]", "datetime_object", "object"),
-        ("timestamp[s]", "pd_timestamp", "datetime64[ns]"),
+        ("timestamp[s]", "pd_timestamp", "datetime64[s]"),
         ("timestamp[s]", "pd_period", "period[S]"),
         ("timestamp[ms]", "datetime_object", "object"),
-        ("timestamp[ms]", "pd_timestamp", "datetime64[ns]"),
+        ("timestamp[ms]", "pd_timestamp", "datetime64[ms]"),
         ("timestamp[ms]", "pd_period", "period[L]"),
         ("timestamp[us]", "datetime_object", "object"),
-        ("timestamp[us]", "pd_timestamp", "datetime64[ns]"),
+        ("timestamp[us]", "pd_timestamp", "datetime64[us]"),
         ("timestamp[us]", "pd_period", "period[U]"),
         ("timestamp[ns]", "datetime_object", "datetime64[ns]"),
         ("timestamp[ns]", "pd_timestamp", "datetime64[ns]"),
@@ -49,7 +49,6 @@ def datetime_object_as_str(x):
     ],
 )
 def test_datetime(in_type, pd_timestamp_type, out_type):
-
     test_data_path = "tests/data/datetime_type.csv"
     test_str_dates = pd.read_csv(test_data_path, dtype=str)["my_datetime"]
     test_str_dates = [None if pd.isna(s) else s for s in test_str_dates]
@@ -89,7 +88,6 @@ def test_datetime(in_type, pd_timestamp_type, out_type):
     [("datetime_object", False), ("pd_timestamp", True), ("pd_period", False)],
 )
 def test_out_of_bounds_datetime(pd_timestamp_type, expect_error):
-
     test_data_path = "tests/data/datetime_type_oob.csv"
     test_str_dates = pd.read_csv(test_data_path, dtype=str)["my_datetime"]
     test_str_dates = [None if pd.isna(s) else s for s in test_str_dates]
@@ -137,15 +135,14 @@ def test_out_of_bounds_datetime(pd_timestamp_type, expect_error):
     "in_type,pd_date_type,out_type",
     [
         ("date32", "datetime_object", "object"),
-        ("date32", "pd_timestamp", "datetime64[ns]"),
+        ("date32", "pd_timestamp", "datetime64[ms]"),
         ("date32", "pd_period", "object"),
         ("date64", "datetime_object", "object"),
-        ("date64", "pd_timestamp", "datetime64[ns]"),
+        ("date64", "pd_timestamp", "datetime64[ms]"),
         ("date64", "pd_period", "period[L]"),
     ],
 )
 def test_date(in_type, pd_date_type, out_type):
-
     test_data_path = "tests/data/date_type.csv"
     test_str_dates = pd.read_csv(test_data_path, dtype=str)["my_date"]
     test_str_dates = [None if pd.isna(s) else s for s in test_str_dates]
