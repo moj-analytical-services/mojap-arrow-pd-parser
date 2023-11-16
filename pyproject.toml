@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arrow_pd_parser"
-version = "1.3.9"
+version = "2.0.0"
 description = "MoJ arrow-pd-parser"
 authors = ["Karik Isichei <karik.isichei@digital.justice.gov.uk>",
            "Alec Johnson <alec.johnson@digital.justice.gov.uk>",
@@ -22,7 +22,7 @@ homepage = "https://github.com/moj-analytical-services/mojap-arrow-pd-parser"
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
 pandas = ">=1.2"
-pyarrow = ">=6.0.0"
+pyarrow = ">=14.0.0"
 mojap-metadata = {version = "^1.10.0", extras = ["arrow"]}
 awswrangler = ">=2.4.0"
 smart-open = "^5.2.1"
