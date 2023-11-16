@@ -110,7 +110,9 @@ def pd_to_parquet(
         )
         from_pandas_kwargs.pop("schema")
 
-    if type(output_file) != str and type(output_file) != pa.lib.NativeFile:
+    if not isinstance(output_file, str) and not isinstance(
+        output_file, pa.lib.NativeFile
+    ):
         raise TypeError(f"unsupported output type: {type(output_file)}")
 
     table = pa.Table.from_pandas(df, **from_pandas_kwargs, schema=schema)
