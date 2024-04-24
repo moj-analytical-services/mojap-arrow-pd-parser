@@ -313,7 +313,8 @@ def cast_pandas_table_to_schema(
     meta_cols_to_convert = [
         c
         for c in meta["columns"]
-        if c["name"] not in all_exclude_cols and c["name"] not in meta.get("partitions", [])
+        if c["name"] not in all_exclude_cols
+        and c["name"] not in meta.get("partitions", [])
     ]
 
     for c in meta_cols_to_convert:
@@ -345,7 +346,8 @@ def cast_pandas_table_to_schema(
     final_cols = [
         c["name"]
         for c in meta["columns"]
-        if c["name"] not in drop_columns and c["name"] not in meta.get("partitions", [])
+        if c["name"] not in drop_columns
+        and c["name"] not in meta.get("partitions", [])
     ]
     df = df[final_cols]
 

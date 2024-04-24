@@ -112,7 +112,10 @@ def test_basic_end_to_end(test_data_path, drop_and_ignore):
         "my_date": "object",
         "my_datetime": "object",
         "my_int": "Int64",
-        "my_string": "string" if not drop_and_ignore or data_format == "csv" else "object",
+        "my_string": (
+            "string" if not drop_and_ignore
+            or data_format == "csv" else "object"
+        ),
     }
 
     actual_dtypes = {}
