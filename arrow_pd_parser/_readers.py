@@ -290,7 +290,8 @@ class ArrowBaseReader(DataFrameFileReader):
         if "filesystem" not in kwargs:
             # from uri doesn't like relative paths
             input_path = (
-                input_path if is_s3_filepath(input_path)
+                input_path
+                if is_s3_filepath(input_path)
                 else os.path.abspath(input_path)
             )
             reader_fs, abstract_path = pa.fs.FileSystem.from_uri(input_path)
@@ -340,7 +341,6 @@ class ArrowBaseReader(DataFrameFileReader):
         metadata: Union[Metadata, dict] = None,
         **kwargs,
     ):
-
         arrow_table = self._read_to_table(input_path, **kwargs)
         arrow_table = self._process_schema_and_cast(metadata, arrow_table)
         df = self._cast_arrow_to_pandas(arrow_table)
@@ -396,7 +396,6 @@ class ArrowCsvReader(ArrowBaseReader):
         input_path,
         **kwargs,
     ) -> pa.Table:
-
         reader_fs = kwargs.pop("filesystem")
 
         with reader_fs.open_input_file(input_path) as csv_file:

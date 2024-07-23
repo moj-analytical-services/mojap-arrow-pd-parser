@@ -11,7 +11,6 @@ from pandas import Series
     [("string", "object", "string")],
 )
 def test_string(in_type, pd_old_type, pd_new_type):
-
     schema = pa.schema([("string_col", pa.string())])
     df_old = pa_read_csv_to_pandas(
         "tests/data/string_type.csv", schema, False, pd_string=False

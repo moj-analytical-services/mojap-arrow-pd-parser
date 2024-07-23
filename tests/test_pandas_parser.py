@@ -58,7 +58,6 @@ def test_file_reader_works_with_both_meta_types():
 
 @pytest.mark.parametrize("data_format", ["jsonl", "csv"])
 def test_basic_end_to_end(data_format):
-
     test_data_path = f"tests/data/all_types.{data_format}"
 
     meta = {
