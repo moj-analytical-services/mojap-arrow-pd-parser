@@ -22,166 +22,6 @@ class PandasCastError(Exception):
     pass
 
 
-def cast_pandas_column_to_schema(
-    s: pd.Series,
-    metacol: dict,
-    pd_integer=True,
-    pd_string=True,
-    pd_boolean=True,
-    pd_date_type: str = "datetime_object",
-    pd_timestamp_type: str = "datetime_object",
-    num_errors="raise",
-    ts_errors="raise",
-    bool_errors="coerce",
-    bool_map=None,
-) -> pd.Series:
-    complex_type_categories = ["struct", "list"]
-
-    # get type_category if not exist
-    if "type_category" not in metacol:
-        tmp_meta = Metadata(columns=[metacol])
-        tmp_meta.set_col_type_category_from_types()
-        metacol = tmp_meta.get_column(metacol["name"])
-
-    # Conversions
-    try:
-        if metacol["type_category"] == "integer":
-            s = convert_to_integer_series(s, pd_integer, num_errors)
-
-        elif metacol["type_category"] == "float":
-            s = convert_to_float_series(s, num_errors)
-
-        elif metacol["type_category"] == "boolean":
-            s = convert_to_bool_series(s, pd_boolean, bool_map, bool_errors)
-
-        elif metacol["type_category"] == "string":
-            s = convert_to_string_series(s, pd_string)
-
-        elif metacol["type_category"] == "timestamp":
-            is_date = metacol["type"].startswith("date")
-            s = convert_str_to_timestamp_series(
-                s,
-                pd_type=pd_date_type if is_date else pd_timestamp_type,
-                is_date=is_date,
-                ts_errors=ts_errors,
-                str_datetime_format=metacol.get("datetime_format"),
-            )
-        elif metacol["type_category"] in complex_type_categories:
-            warnings.warn(
-                f"complex types ({complex_type_categories}) are not cast "
-                f"(column: {metacol['name']})"
-            )
-        else:
-            raise ValueError(
-                f"meta type_category must be one of {_allowed_type_categories}."
-                f"Got {metacol['type_category']} from column {metacol['name']}"
-            )
-
-    except Exception as e:
-        starter_msg = (
-            f"Failed conversion - name: {metacol['name']} | "
-            f"type_category: {metacol['type_category']} | "
-            f"type: {metacol.get('type')} - see traceback."
-        )
-        raise PandasCastError(starter_msg).with_traceback(e.__traceback__)
-
-    return s
-
-
-def cast_pandas_table_to_schema(
-    df: pd.DataFrame,
-    metadata: Union[Metadata, dict],
-    ignore_columns: List = None,
-    drop_columns: List = None,
-    pd_integer: bool = True,
-    pd_string: bool = True,
-    pd_boolean: bool = True,
-    pd_date_type: str = "datetime_object",
-    pd_timestamp_type: str = "datetime_object",
-    bool_map: Union[Callable, dict] = None,
-    num_error_map: dict = None,
-):
-    """
-    Casts the columns in dataframe provided to the meta data dictionary provided.
-    Safest casting occurs when all coltypes of input dataframe are strings.
-
-    df: Pandas dataframe
-    meta: Metadata or dict representation of metadata
-    ignore_columns: a list of column names to not cast to the meta data dictionary.
-        These columns are remained unchanged.
-    drop_columns: Removes these columns from the dataframe
-    bool_map (Callable, dict, optional): A custom mapping function that is applied
-        to str cols to be converted to booleans before conversion to boolean type.
-        e.g. {"Yes": True, "No": False}. If not set bool values are inferred by the
-        _default_str_bool_mapper.
-    """
-
-    default_num_errors = "raise"
-
-    if ignore_columns is None:
-        ignore_columns = []
-
-    if drop_columns is None:
-        drop_columns = []
-
-    if isinstance(metadata, Metadata):
-        meta = metadata.to_dict()
-    elif isinstance(metadata, dict):
-        if "columns" not in metadata:
-            raise KeyError('metadata missing a "columns" key')
-
-        _ = Metadata.from_dict(metadata)  # Check metadata is valid
-        meta = deepcopy(metadata)
-    else:
-        error_msg = (
-            "Input metadata must be of type Metadata " f"or dict got {type(metadata)}"
-        )
-        raise ValueError(error_msg)
-    df = df.copy()
-
-    all_exclude_cols = ignore_columns + drop_columns
-    meta_cols_to_convert = [
-        c
-        for c in meta["columns"]
-        if c["name"] not in all_exclude_cols or c["name"] not in meta["partitions"]
-    ]
-
-    for c in meta_cols_to_convert:
-        # Null first if applicable
-        if c["name"] not in df.columns:
-            raise ValueError(f"Column '{c['name']}' not in df")
-
-        else:
-            # must get num_errors from either meta or num_error_map. Meta has precedence
-            if c.get("num_errors"):
-                num_errors = c.get("num_errors")
-            elif isinstance(num_error_map, dict):
-                num_errors = num_error_map.get(c["name"])
-            else:
-                num_errors = default_num_errors
-
-            df[c["name"]] = cast_pandas_column_to_schema(
-                df[c["name"]],
-                metacol=c,
-                pd_integer=pd_integer,
-                pd_string=pd_string,
-                pd_boolean=pd_boolean,
-                pd_date_type=pd_date_type,
-                pd_timestamp_type=pd_timestamp_type,
-                num_errors=num_errors,
-                bool_map=bool_map,
-            )
-
-    final_cols = [
-        c["name"]
-        for c in meta["columns"]
-        if c["name"] not in drop_columns or c["name"] not in meta["partitions"]
-    ]
-    df = df[final_cols]
-
-    return df
-
-
 def _convert_str_to_ns_timestamp_series(
     s: pd.Series,
     ts_errors: str,
@@ -426,9 +266,17 @@ def convert_to_bool_series(
 
     if t in ["str_object", "numeric"]:
         if bool_map is None:
-            s = s.map(_default_str_bool_mapper)
+            try:
+                s = check_bool_mapping_errors(
+                    s, _default_str_bool_mapper, bool_errors=bool_errors
+                )
+            except ValueError as e:
+                print(e)
         else:
-            s = s.map(bool_map)
+            try:
+                s = check_bool_mapping_errors(s, bool_map, bool_errors=bool_errors)
+            except ValueError as e:
+                print(e)
 
     s = s.convert_dtypes(
         infer_objects=False,
@@ -494,3 +342,163 @@ def convert_str_to_timestamp_series(
         )
 
     return s
+
+
+def cast_pandas_column_to_schema(
+    s: pd.Series,
+    metacol: dict,
+    pd_integer=True,
+    pd_string=True,
+    pd_boolean=True,
+    pd_date_type: str = "datetime_object",
+    pd_timestamp_type: str = "datetime_object",
+    num_errors="raise",
+    ts_errors="raise",
+    bool_errors="coerce",
+    bool_map=None,
+) -> pd.Series:
+    complex_type_categories = ["struct", "list"]
+
+    # get type_category if not exist
+    if "type_category" not in metacol:
+        tmp_meta = Metadata(columns=[metacol])
+        tmp_meta.set_col_type_category_from_types()
+        metacol = tmp_meta.get_column(metacol["name"])
+
+    # Conversions
+    try:
+        if metacol["type_category"] == "integer":
+            s = convert_to_integer_series(s, pd_integer, num_errors)
+
+        elif metacol["type_category"] == "float":
+            s = convert_to_float_series(s, num_errors)
+
+        elif metacol["type_category"] == "boolean":
+            s = convert_to_bool_series(s, pd_boolean, bool_map, bool_errors)
+
+        elif metacol["type_category"] == "string":
+            s = convert_to_string_series(s, pd_string)
+
+        elif metacol["type_category"] == "timestamp":
+            is_date = metacol["type"].startswith("date")
+            s = convert_str_to_timestamp_series(
+                s,
+                pd_type=pd_date_type if is_date else pd_timestamp_type,
+                is_date=is_date,
+                ts_errors=ts_errors,
+                str_datetime_format=metacol.get("datetime_format"),
+            )
+        elif metacol["type_category"] in complex_type_categories:
+            warnings.warn(
+                f"complex types ({complex_type_categories}) are not cast "
+                f"(column: {metacol['name']})"
+            )
+        else:
+            raise ValueError(
+                f"meta type_category must be one of {_allowed_type_categories}."
+                f"Got {metacol['type_category']} from column {metacol['name']}"
+            )
+
+    except Exception as e:
+        starter_msg = (
+            f"Failed conversion - name: {metacol['name']} | "
+            f"type_category: {metacol['type_category']} | "
+            f"type: {metacol.get('type')} - see traceback."
+        )
+        raise PandasCastError(starter_msg).with_traceback(e.__traceback__)
+
+    return s
+
+
+def cast_pandas_table_to_schema(
+    df: pd.DataFrame,
+    metadata: Union[Metadata, dict],
+    ignore_columns: List = None,
+    drop_columns: List = None,
+    pd_integer: bool = True,
+    pd_string: bool = True,
+    pd_boolean: bool = True,
+    pd_date_type: str = "datetime_object",
+    pd_timestamp_type: str = "datetime_object",
+    bool_map: Union[Callable, dict] = None,
+    num_error_map: dict = None,
+):
+    """
+    Casts the columns in dataframe provided to the meta data dictionary provided.
+    Safest casting occurs when all coltypes of input dataframe are strings.
+
+    df: Pandas dataframe
+    meta: Metadata or dict representation of metadata
+    ignore_columns: a list of column names to not cast to the meta data dictionary.
+        These columns are remained unchanged.
+    drop_columns: Removes these columns from the dataframe
+    bool_map (Callable, dict, optional): A custom mapping function that is applied
+        to str cols to be converted to booleans before conversion to boolean type.
+        e.g. {"Yes": True, "No": False}. If not set bool values are inferred by the
+        _default_str_bool_mapper.
+    """
+
+    default_num_errors = "raise"
+
+    if ignore_columns is None:
+        ignore_columns = []
+
+    if drop_columns is None:
+        drop_columns = []
+
+    if isinstance(metadata, Metadata):
+        meta = metadata.to_dict()
+    elif isinstance(metadata, dict):
+        if "columns" not in metadata:
+            raise KeyError('metadata missing a "columns" key')
+
+        _ = Metadata.from_dict(metadata)  # Check metadata is valid
+        meta = deepcopy(metadata)
+    else:
+        error_msg = (
+            "Input metadata must be of type Metadata " f"or dict got {type(metadata)}"
+        )
+        raise ValueError(error_msg)
+    df = df.copy()
+
+    all_exclude_cols = ignore_columns + drop_columns
+    meta_cols_to_convert = [
+        c
+        for c in meta["columns"]
+        if c["name"] not in all_exclude_cols or c["name"] not in meta["partitions"]
+    ]
+
+    for c in meta_cols_to_convert:
+        # Null first if applicable
+        if c["name"] not in df.columns:
+            raise ValueError(f"Column '{c['name']}' not in df")
+
+        else:
+            # must get num_errors from either meta or num_error_map. Meta has precedence
+            if c.get("num_errors"):
+                num_errors = c.get("num_errors")
+            elif isinstance(num_error_map, dict):
+                num_errors = num_error_map.get(c["name"])
+            else:
+                num_errors = default_num_errors
+
+            df[c["name"]] = cast_pandas_column_to_schema(
+                df[c["name"]],
+                metacol=c,
+                pd_integer=pd_integer,
+                pd_string=pd_string,
+                pd_boolean=pd_boolean,
+                pd_date_type=pd_date_type,
+                pd_timestamp_type=pd_timestamp_type,
+                num_errors=num_errors,
+                bool_map=bool_map,
+            )
+
+    final_cols = [
+        c["name"]
+        for c in meta["columns"]
+        if c["name"] not in drop_columns or c["name"] not in meta["partitions"]
+    ]
+    df = df[final_cols]
+
+    return df
