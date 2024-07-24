@@ -89,10 +89,9 @@ def _default_str_bool_mapper(
     --------
     Union[bool, float]
         If value recognised - returns the mapped boolean value.
-        If value unrecognised: 
-            & bool_errors="coerce" - returns np.nan.
-            & bool_errors="raise" - ValueError raised.
-        
+        If value unrecognised:
+        & bool_errors="coerce" - returns np.nan.
+        & bool_errors="raise" - ValueError raised.
 
     Raises:
     -------
@@ -101,7 +100,7 @@ def _default_str_bool_mapper(
 
     Notes:
     ------
-    - Function is case-insensitive, 
+    - Function is case-insensitive,
     - Ignores leading and trailing whitespace in the input string.
     - Empty strings and None are mapped to np.nan.
     - If the input is NaN (as determined by pandas.isna()), function returns np.nan.
@@ -122,7 +121,7 @@ def _default_str_bool_mapper(
     nan
     >>> _default_str_bool_mapper("maybe", bool_errors="raise")
     Traceback (most recent call last):
-    ...
+        ...
     ValueError: maybe
     """
 
