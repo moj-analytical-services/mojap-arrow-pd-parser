@@ -88,8 +88,9 @@ def _default_str_bool_mapper(
     Returns:
     --------
     Union[bool, float]
-        The mapped boolean value if the input is recognized, or np.nan if the input is unrecognized and
-        bool_errors is set to "coerce". If bool_errors is set to "raise", a ValueError is raised for unrecognized inputs.
+        The mapped boolean value if the input is recognized, 
+        or np.nan if the input is unrecognized and bool_errors is set to "coerce".
+        If bool_errors is set to "raise", a ValueError is raised for unrecognized inputs.
 
     Raises:
     -------
@@ -98,7 +99,8 @@ def _default_str_bool_mapper(
 
     Notes:
     ------
-    - The function is case-insensitive and ignores leading and trailing whitespace in the input string.
+    - Function is case-insensitive, 
+    - Ignores leading and trailing whitespace in the input string.
     - Empty strings and None are mapped to np.nan.
     - If the input is NaN (as determined by pandas.isna()), function returns np.nan.
 
@@ -168,28 +170,30 @@ def check_bool_mapping_errors(
         The input pandas Series containing values to be mapped to boolean.
 
     func : callable, optional, default=_default_str_bool_mapper
-        The function to apply to each element of the series. This function should take two arguments:
+        The func to apply to each series element. This func should take two arguments:
         the value to be mapped and the bool_errors parameter.
 
     bool_errors : str, optional, default="coerce"
-        Specifies the behavior when an input value cannot be mapped to a boolean by the given function.
+        Specifies the behavior when an input value cannot be mapped to a boolean:
         - "coerce": returns np.nan for values that cannot be cast to boolean.
         - "raise": raises a ValueError for values that cannot be cast to boolean.
 
     Returns:
     --------
     pd.Series
-        A pandas Series with the same index as the input, containing the mapped boolean values or np.nan for unmappable values.
+        A Series with the same index as the input, containing the mapped boolean values
+        or np.nan for unmappable values.
 
     Raises:
     -------
     ValueError
-        If bool_errors is "raise" and there are values in the series that cannot be cast to boolean,
-        a ValueError is raised after processing all values, detailing the number of errors and the problematic values.
+        If bool_errors is "raise" and there are values in the series that cannot
+        be cast to boolean, a ValueError is raised after processing all values,
+        detailing the number of errors and the problematic values.
 
     Examples:
     ---------
-    >>> series = pd.Series(["yes", "no", "true", "false", "maybe"])
+    >>> series = pd.Series(["yes", "no", "true", "false", "apple"])
     >>> check_bool_mapping_errors(series)
     0     True
     1    False
@@ -201,13 +205,14 @@ def check_bool_mapping_errors(
     >>> check_bool_mapping_errors(series, bool_errors="raise")
     Traceback (most recent call last):
         ...
-    ValueError: 1 values could not be cast to boolean values. Details: ['maybe']
+    ValueError: 1 values could not be cast to boolean values. Details: ['apple']
 
     Notes:
     ------
-    - The function iterates over each element of the input series and applies the given boolean mapping function.
-    - If bool_errors is set to "coerce", values that cannot be mapped to boolean are replaced with np.nan.
-    - If bool_errors is set to "raise", a ValueError is raised after processing all values if there are any unmappable values.
+    - The function applies a boolean mapping func to each element of the input series.
+    - If bool_errors is "coerce", unmappable values are replaced with np.nan.
+    - If bool_errors is "raise", a ValueError is raised 
+    for any unmappable values after processing.
     """
 
     casting_errors = []
