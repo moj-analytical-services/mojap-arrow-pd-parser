@@ -122,7 +122,7 @@ def _default_str_bool_mapper(
     nan
     >>> _default_str_bool_mapper("maybe", bool_errors="raise")
     Traceback (most recent call last):
-        ...
+    ...
     ValueError: maybe
     """
 
