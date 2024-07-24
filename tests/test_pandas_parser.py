@@ -110,37 +110,48 @@ def test_basic_end_to_end(data_format):
 
 
 @pytest.mark.parametrize(
-    "s,expected_category,bool_map",
+    "s, expected_category, bool_map, bool_errors",
     [
-        (pd.Series([True, False, True], dtype=bool), "bool", None),
-        (pd.Series([True, False, None], dtype=object), "bool_object", None),
-        (pd.Series([True, False, pd.NA], dtype=pd.BooleanDtype()), "boolean", None),
-        (pd.Series(["True", "False", np.nan], dtype=str), "str_object", None),
+        # Boolean series
+        (pd.Series([True, False, True], dtype=bool), "bool", None, "coerce"),
+        (pd.Series([True, False, None], dtype=object), "bool_object", None, "coerce"),
+        (
+            pd.Series([True, False, pd.NA], dtype=pd.BooleanDtype()),
+            "boolean",
+            None,
+            "coerce",
+        ),
+        # String series
+        (pd.Series(["True", "False", np.nan], dtype=str), "str_object", None, "coerce"),
         (
             pd.Series(["True", "False", None], dtype=pd.StringDtype()),
             "str_object",
             None,
+            "coerce",
         ),
-        (pd.Series(["T", "F", np.nan], dtype=str), "str_object", None),
-        (pd.Series(["1.0", "0.0", np.nan], dtype=str), "str_object", None),
+        (pd.Series(["T", "F", np.nan], dtype=str), "str_object", None, "coerce"),
+        (pd.Series(["1.0", "0.0", np.nan], dtype=str), "str_object", None, "coerce"),
+        # String Series with custom map
         (
             pd.Series(["Yes", "No", np.nan], dtype=str),
             "str_object",
             {"Yes": True, "No": False},
+            "coerce",
         ),
-        (pd.Series([1, 0, 1], dtype=int), "numeric", None),
-        (pd.Series([1, 0, np.nan], dtype=float), "numeric", None),
-        (pd.Series([1.0, 0.0, np.nan], dtype=float), "numeric", None),
+        # Numeric Series
+        (pd.Series([1, 0, 1], dtype=int), "numeric", None, "coerce"),
+        (pd.Series([1, 0, np.nan], dtype=float), "numeric", None, "coerce"),
+        (pd.Series([1.0, 0.0, np.nan], dtype=float), "numeric", None, "coerce"),
     ],
 )
-def test_boolean_conversion(s, expected_category, bool_map):
+def test_boolean_conversion(s, expected_category, bool_map, bool_errors):
     assert _infer_bool_type(s) == expected_category
 
     if pd.isna(s[2]):
         expected = pd.Series([True, False, pd.NA], dtype=pd.BooleanDtype())
     else:
         expected = pd.Series([True, False, True], dtype=pd.BooleanDtype())
-    actual = convert_to_bool_series(s, True, bool_map=bool_map)
+    actual = convert_to_bool_series(s, True, bool_map=bool_map, bool_errors=bool_errors)
     assert_series_equal(expected, actual)
 
 

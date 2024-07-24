@@ -130,6 +130,8 @@ def _default_str_bool_mapper(
         "false": False,
         "f": False,
         "1": True,
+        "1.0": True,
+        "0.0": False,
         "0": False,
         "": np.nan,
         None: np.nan,
@@ -273,10 +275,7 @@ def convert_to_bool_series(
             except ValueError as e:
                 print(e)
         else:
-            try:
-                s = check_bool_mapping_errors(s, bool_map, bool_errors=bool_errors)
-            except ValueError as e:
-                print(e)
+            s = s.map(bool_map)
 
     s = s.convert_dtypes(
         infer_objects=False,
