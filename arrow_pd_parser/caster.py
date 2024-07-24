@@ -274,6 +274,7 @@ def convert_to_bool_series(
                 )
             except ValueError as e:
                 print(e)
+                return e
         else:
             s = s.map(bool_map)
 

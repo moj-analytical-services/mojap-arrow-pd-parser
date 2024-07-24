@@ -12,8 +12,8 @@ from arrow_pd_parser.caster import (
     convert_to_bool_series,
     convert_str_to_timestamp_series,
     cast_pandas_table_to_schema,
-    PandasCastError,
     cast_pandas_column_to_schema,
+    PandasCastError,
 )
 
 from jsonschema.exceptions import ValidationError
@@ -153,6 +153,24 @@ def test_boolean_conversion(s, expected_category, bool_map, bool_errors):
         expected = pd.Series([True, False, True], dtype=pd.BooleanDtype())
     actual = convert_to_bool_series(s, True, bool_map=bool_map, bool_errors=bool_errors)
     assert_series_equal(expected, actual)
+
+
+@pytest.mark.xfail(raises=ValueError)
+def test_bool_incorrect_str_conversion():
+    s = pd.Series(["True", "False", "apple"], dtype=str)
+    convert_to_bool_series(s, pd_boolean=True, bool_errors="raise")
+
+
+@pytest.mark.xfail(raises=ValueError)
+def test_bool_incorrect_int_conversion():
+    s = pd.Series([100, 200, 300], dtype=int)
+    convert_to_bool_series(s, pd_boolean=True, bool_errors="raise")
+
+
+@pytest.mark.xfail(raises=ValueError)
+def test_bool_incorrect_float_conversion():
+    s = pd.Series([11.11, 22.22, 33.33], dtype=float)
+    convert_to_bool_series(s, pd_boolean=True, bool_errors="raise")
 
 
 @pytest.mark.parametrize(
