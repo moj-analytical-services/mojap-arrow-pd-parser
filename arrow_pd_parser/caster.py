@@ -88,14 +88,16 @@ def _default_str_bool_mapper(
     Returns:
     --------
     Union[bool, float]
-        The mapped boolean value if the input is recognized, 
-        or np.nan if the input is unrecognized and bool_errors is set to "coerce".
-        If bool_errors is set to "raise", a ValueError is raised for unrecognized inputs.
+        If value recognised - returns the mapped boolean value.
+        If value unrecognised: 
+            & bool_errors="coerce" - returns np.nan.
+            & bool_errors="raise" - ValueError raised.
+        
 
     Raises:
     -------
     ValueError
-        If bool_errors is "raise" and the input value cannot be mapped to a boolean.
+        If bool_errors="raise" and the input value cannot be mapped to a boolean.
 
     Notes:
     ------
@@ -211,8 +213,8 @@ def check_bool_mapping_errors(
     ------
     - The function applies a boolean mapping func to each element of the input series.
     - If bool_errors is "coerce", unmappable values are replaced with np.nan.
-    - If bool_errors is "raise", a ValueError is raised 
-    for any unmappable values after processing.
+    - If bool_errors is "raise", a ValueError is raised
+      for any unmappable values after processing.
     """
 
     casting_errors = []
@@ -228,7 +230,8 @@ def check_bool_mapping_errors(
 
     if casting_errors:
         raise ValueError(
-            f"{len(casting_errors)} values could not be cast to boolean values. Details: {casting_errors}"
+            f"""{len(casting_errors)} values could not be cast to boolean values.
+            Details: {casting_errors}"""
         )
 
     return result
