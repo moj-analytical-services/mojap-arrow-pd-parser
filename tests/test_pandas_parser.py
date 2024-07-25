@@ -2,6 +2,7 @@ import pytest
 
 from io import StringIO
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
@@ -56,11 +57,16 @@ def test_file_reader_works_with_both_meta_types():
         reader.csv.read("tests/data/example_data.jsonl", metadata=m)
 
 
-@pytest.mark.parametrize("data_format", ["jsonl", "csv"])
-def test_basic_end_to_end(data_format):
-
-    test_data_path = f"tests/data/all_types.{data_format}"
-
+@pytest.mark.parametrize(
+    ["test_data_path", "drop_and_ignore"],
+    [
+        ("tests/data/all_types.jsonl", False),
+        ("tests/data/all_types.csv", False),
+        ("tests/data/all_types.jsonl", True),
+        ("tests/data/all_types.csv", True),
+    ]
+)
+def test_basic_end_to_end(test_data_path, drop_and_ignore):
     meta = {
         "columns": [
             {"name": "my_float", "type": "float64", "type_category": "float"},
@@ -77,12 +83,27 @@ def test_basic_end_to_end(data_format):
         ]
     }
 
+    data_format = Path(test_data_path).suffix.replace(".", "")
+
     if data_format == "jsonl":
         df = pd.read_json(test_data_path, lines=True)
     else:
         df = pd.read_csv(test_data_path, dtype="string", low_memory=False)
 
-    dfn = cast_pandas_table_to_schema(df, meta)
+    if drop_and_ignore:
+        meta["columns"].append(
+            {
+                "name": "drop_column", "type": "string", "type_category": "string",
+            }
+        )
+        df["drop_column"] = "dummy_value"
+
+    dfn = cast_pandas_table_to_schema(
+        df,
+        meta,
+        drop_columns=["drop_column"] if drop_and_ignore else None,
+        ignore_columns=["my_string"] if drop_and_ignore else None,
+    )
 
     expected_dtypes = {
         "my_float": "float64",
@@ -91,7 +112,10 @@ def test_basic_end_to_end(data_format):
         "my_date": "object",
         "my_datetime": "object",
         "my_int": "Int64",
-        "my_string": "string",
+        "my_string": (
+            "string" if not drop_and_ignore
+            or data_format == "csv" else "object"
+        ),
     }
 
     actual_dtypes = {}
@@ -99,9 +123,19 @@ def test_basic_end_to_end(data_format):
         actual_dtypes[c] = str(dfn[c].dtype)
     assert actual_dtypes == expected_dtypes
 
+    if drop_and_ignore:
+        meta = {"columns": [c for c in meta["columns"] if c["name"] != "drop_column"]}
+
     if data_format == "jsonl":
         df2 = reader.json.read(test_data_path, meta)
         df3 = reader.json.read(test_data_path, meta, orient="records", lines=True)
+
+        if drop_and_ignore:
+            dfn["my_string"] = cast_pandas_column_to_schema(
+                dfn["my_string"],
+                {"name": "my_string", "type": "string", "type_category": "string"}
+            )
+
     else:
         df2 = reader.csv.read(test_data_path, meta)
         df3 = reader.csv.read(test_data_path, meta, dtype=str, low_memory=False)
