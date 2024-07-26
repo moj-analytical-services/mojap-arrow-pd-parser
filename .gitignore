@@ -140,3 +140,6 @@ dmypy.json
 # data
 *.csv
 !tests/data/*.csv
+
+# git_attributes
+.gitattributes
