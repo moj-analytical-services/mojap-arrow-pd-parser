@@ -1,27 +1,23 @@
-import pytest
-
-from io import StringIO
 from datetime import datetime
+from io import StringIO
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
+from jsonschema.exceptions import ValidationError
+from mojap_metadata import Metadata
 from pandas.testing import assert_frame_equal, assert_series_equal
 
-from arrow_pd_parser.caster import (
-    _infer_bool_type,
-    convert_to_bool_series,
-    convert_str_to_timestamp_series,
-    cast_pandas_table_to_schema,
-    cast_pandas_column_to_schema,
-    PandasCastError,
-)
-
-from jsonschema.exceptions import ValidationError
-
-from mojap_metadata import Metadata
-
 from arrow_pd_parser import reader
+from arrow_pd_parser.caster import (
+    PandasCastError,
+    _infer_bool_type,
+    cast_pandas_column_to_schema,
+    cast_pandas_table_to_schema,
+    convert_str_to_timestamp_series,
+    convert_to_bool_series,
+)
 
 
 def test_file_reader_returns_df():
@@ -64,7 +60,7 @@ def test_file_reader_works_with_both_meta_types():
         ("tests/data/all_types.csv", False),
         ("tests/data/all_types.jsonl", True),
         ("tests/data/all_types.csv", True),
-    ]
+    ],
 )
 def test_basic_end_to_end(test_data_path, drop_and_ignore):
     meta = {
@@ -93,7 +89,9 @@ def test_basic_end_to_end(test_data_path, drop_and_ignore):
     if drop_and_ignore:
         meta["columns"].append(
             {
-                "name": "drop_column", "type": "string", "type_category": "string",
+                "name": "drop_column",
+                "type": "string",
+                "type_category": "string",
             }
         )
         df["drop_column"] = "dummy_value"
@@ -113,14 +111,14 @@ def test_basic_end_to_end(test_data_path, drop_and_ignore):
         "my_datetime": "object",
         "my_int": "Int64",
         "my_string": (
-            "string" if not drop_and_ignore
-            or data_format == "csv" else "object"
+            "string" if not drop_and_ignore or data_format == "csv" else "object"
         ),
     }
 
     actual_dtypes = {}
     for c in dfn.columns:
         actual_dtypes[c] = str(dfn[c].dtype)
+
     assert actual_dtypes == expected_dtypes
 
     if drop_and_ignore:
@@ -133,7 +131,7 @@ def test_basic_end_to_end(test_data_path, drop_and_ignore):
         if drop_and_ignore:
             dfn["my_string"] = cast_pandas_column_to_schema(
                 dfn["my_string"],
-                {"name": "my_string", "type": "string", "type_category": "string"}
+                {"name": "my_string", "type": "string", "type_category": "string"},
             )
 
     else:

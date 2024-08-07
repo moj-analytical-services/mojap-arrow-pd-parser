@@ -1,6 +1,6 @@
 import warnings
 from copy import deepcopy
-from typing import Callable, List, Union
+from typing import Any, Callable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -417,6 +417,91 @@ def cast_pandas_column_to_schema(
     return s
 
 
+def get_error_value(
+    col_metadata: dict,
+    map_dict: Optional[dict] = None,
+    default_value: Any = None,
+    error_type_key: str = "",
+) -> Any:
+    """
+    Retrieves the appropriate error handling strategy for a given column based
+    on a predefined order of priority.
+
+    This function searches for an error handling strategy among three sources:
+
+    1. The column's metadata (`col_metadata`), specifically looking for the
+       `error_type` key.
+
+    2. A mapping dictionary (`map_dict`) that maps column names to their
+       corresponding error handling strategies.
+
+    3. A default error handling strategy (`default_value`) if none the
+       above source provide one.
+
+    The function returns the first found error handling strategy according to
+    the order of priority.
+
+    Parameters
+    ----------
+    col_metadata : dict
+        A dictionary containing metadata about the column. It should include
+        the `error_type` key if it exists.
+
+    map_dict : Optional[dict], optional
+        An optional dictionary mapping column names to their error handling
+        strategies. If not provided or invalid, the function defaults to using
+        the `default_value`.
+
+    default_value : Any, optional
+        The default error handling strategy to use if neither `col_metadata`
+        nor `map_dict` specify one.
+
+    error_type_key : str, optional
+        The key within `col_metadata` specifying the error handling strategy.
+        Defaults to an empty string.
+
+    Returns
+    -------
+    Any
+        The selected error handling strategy, either from `col_metadata`,
+        `map_dict`, or `default_value`.
+
+    Raises
+    ------
+    KeyError
+        If `error_type_key` is not found in `col_metadata`.
+
+    Examples
+    --------
+    >>> col_metadata = {"name": "age", "num_errors": "ignore"}
+    >>> map_dict = {"age": "coerce", "height": "raise"}
+    >>> default_value = "raise"
+    >>> get_error_value(col_metadata, map_dict, default_value, "num_errors")
+    'ignore'
+
+    # Since num_errors is not defined in col_metadata, it falls back
+    # to the supplied map_dict:
+
+    >>> col_metadata = {"name": "height"}
+    >>> get_error_value(col_metadata, map_dict, default_value, "num_errors")
+    'raise'
+
+    # Since both col_metadata and map_dict do not define 'bool_errors',
+    # it falls back to the default value supplied:
+
+    >>> col_metadata = {"name": "height"}
+    >>> get_error_value(col_metadata, map_dict, default_value, "bool_errors")
+    'raise'
+
+    """
+    try:
+        return col_metadata[error_type_key]
+    except KeyError:
+        if map_dict and isinstance(map_dict, dict):
+            return map_dict.get(col_metadata["name"], default_value)
+        return default_value
+
+
 def cast_pandas_table_to_schema(
     df: pd.DataFrame,
     metadata: Union[Metadata, dict],
@@ -429,6 +514,9 @@ def cast_pandas_table_to_schema(
     pd_timestamp_type: str = "datetime_object",
     bool_map: Union[Callable, dict] = None,
     num_error_map: dict = None,
+    bool_error_map: dict = None,
+    num_errors="raise",
+    bool_errors="coerce",
 ):
     """
     Casts the columns in dataframe provided to the meta data dictionary provided.
@@ -444,15 +532,13 @@ def cast_pandas_table_to_schema(
         e.g. {"Yes": True, "No": False}. If not set bool values are inferred by the
         _default_str_bool_mapper.
     """
-
-    default_num_errors = "raise"
-
     if ignore_columns is None:
         ignore_columns = []
 
     if drop_columns is None:
         drop_columns = []
 
+    # Check metadata
     if isinstance(metadata, Metadata):
         meta = metadata.to_dict()
     elif isinstance(metadata, dict):
@@ -466,6 +552,7 @@ def cast_pandas_table_to_schema(
             "Input metadata must be of type Metadata " f"or dict got {type(metadata)}"
         )
         raise ValueError(error_msg)
+
     df = df.copy()
 
     all_exclude_cols = ignore_columns + drop_columns
@@ -482,13 +569,20 @@ def cast_pandas_table_to_schema(
             raise ValueError(f"Column '{c['name']}' not in df")
 
         else:
-            # must get num_errors from either meta or num_error_map. Meta has precedence
-            if c.get("num_errors"):
-                num_errors = c.get("num_errors")
-            elif isinstance(num_error_map, dict):
-                num_errors = num_error_map.get(c["name"])
-            else:
-                num_errors = default_num_errors
+            if num_errors != "raise":
+                num_errors = get_error_value(
+                    col_metadata=c,
+                    map_dict=num_error_map,
+                    default_value=num_errors,
+                    error_type_key="num_errors",
+                )
+            if bool_errors != "coerce":
+                bool_errors = get_error_value(
+                    col_metadata=c,
+                    map_dict=bool_error_map,
+                    default_value=bool_errors,
+                    error_type_key="bool_errors",
+                )
 
             df[c["name"]] = cast_pandas_column_to_schema(
                 df[c["name"]],
@@ -499,14 +593,14 @@ def cast_pandas_table_to_schema(
                 pd_date_type=pd_date_type,
                 pd_timestamp_type=pd_timestamp_type,
                 num_errors=num_errors,
+                bool_errors=bool_errors,
                 bool_map=bool_map,
             )
 
     final_cols = [
         c["name"]
         for c in meta["columns"]
-        if c["name"] not in drop_columns
-        and c["name"] not in meta.get("partitions", [])
+        if c["name"] not in drop_columns and c["name"] not in meta.get("partitions", [])
     ]
     df = df[final_cols]
 

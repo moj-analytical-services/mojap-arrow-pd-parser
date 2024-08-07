@@ -1,5 +1,5 @@
-import warnings
 import os
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import IO, Callable, Dict, Iterable, List, Optional, Union
@@ -66,6 +66,7 @@ class DataFrameFileReader(ABC):
             pd_date_type=self.pd_date_type,
             pd_timestamp_type=self.pd_timestamp_type,
             bool_map=self.bool_map,
+            bool_errors="coerce",
         )
 
         return df
