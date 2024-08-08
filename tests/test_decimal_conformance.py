@@ -9,7 +9,6 @@ from arrow_pd_parser._arrow_parsers import pa_read_csv_to_pandas, pa_read_json_t
     [("float32", "float32"), ("float64", "float64"), ("decimal", "object")],
 )
 def test_decimal_float(arrow_type, pd_type):
-
     type_lu = {
         "float32": pa.float32(),
         "float64": pa.float64(),

@@ -1,27 +1,23 @@
-import pytest
-
-from io import StringIO
 from datetime import datetime
+from io import StringIO
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
+from jsonschema.exceptions import ValidationError
+from mojap_metadata import Metadata
 from pandas.testing import assert_frame_equal, assert_series_equal
 
-from arrow_pd_parser.caster import (
-    _infer_bool_type,
-    convert_to_bool_series,
-    convert_str_to_timestamp_series,
-    cast_pandas_table_to_schema,
-    PandasCastError,
-    cast_pandas_column_to_schema,
-)
-
-from jsonschema.exceptions import ValidationError
-
-from mojap_metadata import Metadata
-
 from arrow_pd_parser import reader
+from arrow_pd_parser.caster import (
+    PandasCastError,
+    _infer_bool_type,
+    cast_pandas_column_to_schema,
+    cast_pandas_table_to_schema,
+    convert_str_to_timestamp_series,
+    convert_to_bool_series,
+)
 
 
 def test_file_reader_returns_df():
@@ -64,7 +60,7 @@ def test_file_reader_works_with_both_meta_types():
         ("tests/data/all_types.csv", False),
         ("tests/data/all_types.jsonl", True),
         ("tests/data/all_types.csv", True),
-    ]
+    ],
 )
 def test_basic_end_to_end(test_data_path, drop_and_ignore):
     meta = {
@@ -93,7 +89,9 @@ def test_basic_end_to_end(test_data_path, drop_and_ignore):
     if drop_and_ignore:
         meta["columns"].append(
             {
-                "name": "drop_column", "type": "string", "type_category": "string",
+                "name": "drop_column",
+                "type": "string",
+                "type_category": "string",
             }
         )
         df["drop_column"] = "dummy_value"
@@ -113,14 +111,14 @@ def test_basic_end_to_end(test_data_path, drop_and_ignore):
         "my_datetime": "object",
         "my_int": "Int64",
         "my_string": (
-            "string" if not drop_and_ignore
-            or data_format == "csv" else "object"
+            "string" if not drop_and_ignore or data_format == "csv" else "object"
         ),
     }
 
     actual_dtypes = {}
     for c in dfn.columns:
         actual_dtypes[c] = str(dfn[c].dtype)
+
     assert actual_dtypes == expected_dtypes
 
     if drop_and_ignore:
@@ -133,7 +131,7 @@ def test_basic_end_to_end(test_data_path, drop_and_ignore):
         if drop_and_ignore:
             dfn["my_string"] = cast_pandas_column_to_schema(
                 dfn["my_string"],
-                {"name": "my_string", "type": "string", "type_category": "string"}
+                {"name": "my_string", "type": "string", "type_category": "string"},
             )
 
     else:
@@ -145,38 +143,67 @@ def test_basic_end_to_end(test_data_path, drop_and_ignore):
 
 
 @pytest.mark.parametrize(
-    "s,expected_category,bool_map",
+    "s, expected_category, bool_map, bool_errors",
     [
-        (pd.Series([True, False, True], dtype=bool), "bool", None),
-        (pd.Series([True, False, None], dtype=object), "bool_object", None),
-        (pd.Series([True, False, pd.NA], dtype=pd.BooleanDtype()), "boolean", None),
-        (pd.Series(["True", "False", np.nan], dtype=str), "str_object", None),
+        # Boolean series
+        (pd.Series([True, False, True], dtype=bool), "bool", None, "coerce"),
+        (pd.Series([True, False, None], dtype=object), "bool_object", None, "coerce"),
+        (
+            pd.Series([True, False, pd.NA], dtype=pd.BooleanDtype()),
+            "boolean",
+            None,
+            "coerce",
+        ),
+        # String series
+        (pd.Series(["True", "False", np.nan], dtype=str), "str_object", None, "coerce"),
         (
             pd.Series(["True", "False", None], dtype=pd.StringDtype()),
             "str_object",
             None,
+            "coerce",
         ),
-        (pd.Series(["T", "F", np.nan], dtype=str), "str_object", None),
-        (pd.Series(["1.0", "0.0", np.nan], dtype=str), "str_object", None),
+        (pd.Series(["T", "F", np.nan], dtype=str), "str_object", None, "coerce"),
+        (pd.Series(["1.0", "0.0", np.nan], dtype=str), "str_object", None, "coerce"),
+        # String Series with custom map
         (
             pd.Series(["Yes", "No", np.nan], dtype=str),
             "str_object",
             {"Yes": True, "No": False},
+            "coerce",
         ),
-        (pd.Series([1, 0, 1], dtype=int), "numeric", None),
-        (pd.Series([1, 0, np.nan], dtype=float), "numeric", None),
-        (pd.Series([1.0, 0.0, np.nan], dtype=float), "numeric", None),
+        # Numeric Series
+        (pd.Series([1, 0, 1], dtype=int), "numeric", None, "coerce"),
+        (pd.Series([1, 0, np.nan], dtype=float), "numeric", None, "coerce"),
+        (pd.Series([1.0, 0.0, np.nan], dtype=float), "numeric", None, "coerce"),
     ],
 )
-def test_boolean_conversion(s, expected_category, bool_map):
+def test_boolean_conversion(s, expected_category, bool_map, bool_errors):
     assert _infer_bool_type(s) == expected_category
 
     if pd.isna(s[2]):
         expected = pd.Series([True, False, pd.NA], dtype=pd.BooleanDtype())
     else:
         expected = pd.Series([True, False, True], dtype=pd.BooleanDtype())
-    actual = convert_to_bool_series(s, True, bool_map=bool_map)
+    actual = convert_to_bool_series(s, True, bool_map=bool_map, bool_errors=bool_errors)
     assert_series_equal(expected, actual)
+
+
+@pytest.mark.xfail(raises=ValueError)
+def test_bool_incorrect_str_conversion():
+    s = pd.Series(["True", "False", "apple"], dtype=str)
+    convert_to_bool_series(s, pd_boolean=True, bool_errors="raise")
+
+
+@pytest.mark.xfail(raises=ValueError)
+def test_bool_incorrect_int_conversion():
+    s = pd.Series([100, 200, 300], dtype=int)
+    convert_to_bool_series(s, pd_boolean=True, bool_errors="raise")
+
+
+@pytest.mark.xfail(raises=ValueError)
+def test_bool_incorrect_float_conversion():
+    s = pd.Series([11.11, 22.22, 33.33], dtype=float)
+    convert_to_bool_series(s, pd_boolean=True, bool_errors="raise")
 
 
 @pytest.mark.parametrize(

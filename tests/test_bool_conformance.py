@@ -20,7 +20,6 @@ args = (
     ],
 )
 def test_bool(my_bool_dtype, my_nullable_bool_dtype, pd_boolean, data_type):
-
     schema = pa.schema(
         [("i", pa.int8()), ("my_bool", pa.bool_()), ("my_nullable_bool", pa.bool_())]
     )

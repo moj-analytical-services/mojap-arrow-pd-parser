@@ -9,7 +9,7 @@ import awswrangler as wr
 import boto3
 import pytest
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
-from moto import mock_s3
+from moto import mock_aws
 
 from arrow_pd_parser import _writers, reader, writer
 from arrow_pd_parser._writers import (
@@ -275,7 +275,7 @@ def test_no_error_when_write_local_path_not_exist(data_format):
     writer.write(df, out_file)
 
 
-@mock_s3
+@mock_aws()
 def test_read_parquet_schema_on_write_to_s3(df_all_types, monkeypatch):
     s3_client = boto3.client("s3")
 
