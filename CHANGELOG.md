@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## 2.2.0 2024-08-08
+
+- Added ability to raise boolean errors during type cast conversions in `cast_pandas_column_to_schema` and `cast_pandas_table_to_schema`.
+- Expanded basic boolean mapper.
+- Added additional test cases for the above
+
 ## 2.1.0 2024-04-24
 
 - Fixed cast_pandas_table_to_schema to handle drop and ignore columns correctly
